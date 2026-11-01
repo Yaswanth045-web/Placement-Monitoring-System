@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { FileText, Plus, Search, Trash2, Calendar, Building, User, Briefcase, RefreshCw, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
-import { getAuthHeaders } from '../utils/authService';
+import { getAuthHeaders, getAuthToken } from '../utils/authService';
 import '../Styles/Applications.css';
 
 const API_URL = API_ENDPOINTS.applications;
@@ -13,8 +13,10 @@ export default function Applications({
   setApplications,
   onApplicationStatusChange,
   currentUser,
+  onOpenAuth,
 }) {
-  const isStudent = currentUser?.role === 'student';
+  const isAdmin = currentUser?.role === 'admin';
+  const isStudent = !isAdmin;
   const [formData, setFormData] = useState({
     studentId: '',
     companyId: '',
@@ -114,6 +116,19 @@ export default function Applications({
 
   async function handleStatusChange(applicationId, newStatus) {
     setError('');
+
+    if (!isAdmin) {
+      setError('Administrator clearance required: Only Placement Officers can update application statuses.');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     const previousApplications = applications;
 
     // Optimistic UI update
@@ -135,6 +150,9 @@ export default function Applications({
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Failed to update status');
       }
 
@@ -157,6 +175,18 @@ export default function Applications({
   }
 
   async function handleDelete(applicationId) {
+    if (!isAdmin) {
+      setError('Administrator clearance required: Only Placement Officers can delete recruitment applications.');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     if (!window.confirm('Delete this application record from the recruitment pipeline?')) {
       return;
     }
@@ -171,6 +201,9 @@ export default function Applications({
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Failed to delete application');
       }
 

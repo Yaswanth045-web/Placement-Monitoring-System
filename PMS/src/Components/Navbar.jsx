@@ -70,6 +70,7 @@ export default function Navbar({
   };
 
   const isTopBarHidden = scrolled || topBarDismissed;
+  const isAdmin = currentUser?.role === 'admin';
   const isStudent = currentUser?.role === 'student';
 
   return (
@@ -78,17 +79,35 @@ export default function Navbar({
       <aside className={`nova-top-bar mono ${isTopBarHidden ? 'hidden' : ''}`} id="topBar">
         <div className="top-bar-inner">
           <span className="top-bar-text">
-            <strong>Security Status:</strong> Authenticated as {isStudent ? 'Candidate / Student (Protected Read-Only Access)' : 'Placement Administrator (Full Operational Clearance)'}
+            <strong>Security Status:</strong>{' '}
+            {!currentUser ? (
+              <span style={{ color: '#fbbf24' }}>Guest / Unauthenticated Session (Read-Only)</span>
+            ) : isAdmin ? (
+              <span style={{ color: '#4ade80' }}>Placement Administrator (Full Operational Clearance)</span>
+            ) : (
+              <span>Candidate / Student (Protected Read-Only Access)</span>
+            )}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button
-              type="button"
-              className="top-bar-switch-btn"
-              onClick={() => onSwitchRole && onSwitchRole(isStudent ? 'admin' : 'student')}
-              title="Quickly switch between Student and Admin testing views"
-            >
-              ⇄ Toggle to {isStudent ? 'Admin Clearance' : 'Student Mode'}
-            </button>
+            {currentUser ? (
+              <button
+                type="button"
+                className="top-bar-switch-btn"
+                onClick={() => onSwitchRole && onSwitchRole(isAdmin ? 'student' : 'admin')}
+                title="Quickly switch between Student and Admin testing views"
+              >
+                ⇄ Toggle to {isAdmin ? 'Student Mode' : 'Admin Clearance'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="top-bar-switch-btn"
+                onClick={onOpenAuth}
+                title="Sign in with your institutional credentials"
+              >
+                Sign In
+              </button>
+            )}
             <button
               type="button"
               className="top-bar-close"
@@ -231,12 +250,12 @@ export default function Navbar({
                         type="button"
                         className="dropdown-item-btn"
                         onClick={() => {
-                          onSwitchRole && onSwitchRole(isStudent ? 'admin' : 'student');
+                          onSwitchRole && onSwitchRole(isAdmin ? 'student' : 'admin');
                           setUserMenuOpen(false);
                         }}
                       >
                         <Repeat size={14} />
-                        <span>SWITCH ROLE TO {isStudent ? 'ADMIN' : 'STUDENT'}</span>
+                        <span>SWITCH ROLE TO {isAdmin ? 'STUDENT' : 'ADMIN'}</span>
                       </button>
 
                       <button
@@ -305,18 +324,18 @@ export default function Navbar({
             {currentUser && (
               <div className="mobile-user-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span className={`chip-role-badge ${isStudent ? 'role-student' : 'role-admin'}`}>
-                    {isStudent ? 'STUDENT' : 'ADMIN'}
+                  <span className={`chip-role-badge ${isAdmin ? 'role-admin' : 'role-student'}`}>
+                    {isAdmin ? 'ADMIN' : 'STUDENT'}
                   </span>
                   <button
                     type="button"
                     className="btn-switch-role mono"
                     onClick={() => {
-                      onSwitchRole(isStudent ? 'admin' : 'student');
+                      onSwitchRole(isAdmin ? 'student' : 'admin');
                       setMobileMenuOpen(false);
                     }}
                   >
-                    Switch to {isStudent ? 'Admin' : 'Student'}
+                    Switch to {isAdmin ? 'Student' : 'Admin'}
                   </button>
                 </div>
                 <div style={{ marginTop: '8px', fontSize: '13.5px', fontWeight: 600 }}>{currentUser.name}</div>

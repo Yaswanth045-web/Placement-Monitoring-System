@@ -153,7 +153,44 @@ router.post('/login', async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: normalizedEmail });
+    let user = await User.findOne({ email: normalizedEmail });
+
+    // Auto-seed default test accounts on first login if not yet created in MongoDB
+    if (!user) {
+      if (normalizedEmail === 'admin@yaswanth.edu' && password.trim() === 'admin123') {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('admin123', salt);
+        user = await User.create({
+          name: 'Avula Yaswanth Reddy',
+          email: 'admin@yaswanth.edu',
+          password: hashedPassword,
+          role: 'admin',
+          branch: 'CSE',
+          rollNo: 'YP-DIR-2026-ADM',
+          cgpa: '9.5',
+          phone: '+91 98765 43210',
+          bio: 'Career Development & Corporate Relations Cell Administrator',
+          skills: 'Placement Operations, Campus Recruitment, System Administration',
+          status: 'Placed',
+        });
+      } else if (normalizedEmail === 'student@yaswanth.edu' && password.trim() === 'student123') {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('student123', salt);
+        user = await User.create({
+          name: 'Yaswanth Candidate',
+          email: 'student@yaswanth.edu',
+          password: hashedPassword,
+          role: 'student',
+          branch: 'CSE',
+          rollNo: 'YP-2026-CS101',
+          cgpa: '8.92',
+          phone: '+91 98765 11223',
+          bio: 'Final-year Computer Science candidate focused on cloud-native web engineering.',
+          skills: 'React.js, Node.js, Three.js, Python, Data Structures',
+          status: 'Applied',
+        });
+      }
+    }
 
     if (!user) {
       return res.status(401).json({

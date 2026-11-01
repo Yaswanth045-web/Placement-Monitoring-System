@@ -18,6 +18,9 @@ import {
   setStoredUser,
   logoutUser,
   verifyCurrentSession,
+  getAuthToken,
+  loginUser,
+  switchUserRole,
   SEED_ADMIN,
   SEED_STUDENT,
 } from './utils/authService';
@@ -108,6 +111,11 @@ function App() {
 
   useEffect(() => {
     async function initSession() {
+      const existingToken = getAuthToken();
+      if (!existingToken) {
+        // Authenticate default initial candidate session with real backend JWT
+        await loginUser(SEED_STUDENT.email, 'student123');
+      }
       const verified = await verifyCurrentSession();
       if (verified) {
         setCurrentUser(verified);
@@ -193,10 +201,16 @@ function App() {
     setCurrentUser(user);
   };
 
-  const handleSwitchRole = (newRole) => {
-    const nextUser = newRole === 'admin' ? SEED_ADMIN : SEED_STUDENT;
-    setCurrentUser(nextUser);
-    setStoredUser(nextUser);
+  const handleSwitchRole = async (newRole) => {
+    try {
+      const updatedUser = await switchUserRole(newRole);
+      setCurrentUser(updatedUser);
+    } catch (err) {
+      console.warn('Switch role exception:', err);
+      const nextUser = newRole === 'admin' ? SEED_ADMIN : SEED_STUDENT;
+      setCurrentUser(nextUser);
+      setStoredUser(nextUser);
+    }
   };
 
   const handleLogout = () => {
@@ -253,6 +267,7 @@ function App() {
             setStudents={setStudents}
             onStudentsChanged={fetchStudents}
             currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
           />
         )}
 
@@ -261,6 +276,7 @@ function App() {
             companies={companies}
             setCompanies={setCompanies}
             currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
           />
         )}
 
@@ -272,6 +288,7 @@ function App() {
             setApplications={setApplications}
             onApplicationStatusChange={handleApplicationStatusChange}
             currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
           />
         )}
 

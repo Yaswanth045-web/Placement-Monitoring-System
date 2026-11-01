@@ -113,10 +113,48 @@ export async function verifyCurrentSession() {
       setStoredUser(result.data);
       return result.data;
     }
+
+    // If server explicitly rejects token (expired / malformed / missing), clear stale token
+    if (res.status === 401) {
+      console.warn('Stored token is invalid or expired. Resetting session token.');
+      setAuthToken(null);
+    }
   } catch {
     // If backend is offline, preserve active stored session
   }
   return getStoredUser();
+}
+
+// --------------------------------------------------------------------------
+// ROLE SWITCH WITH JWT AUTHENTICATION
+// --------------------------------------------------------------------------
+export async function switchUserRole(newRole) {
+  const isTargetAdmin = newRole === 'admin';
+  const targetEmail = isTargetAdmin ? SEED_ADMIN.email : SEED_STUDENT.email;
+  const targetPassword = isTargetAdmin ? 'admin123' : 'student123';
+
+  // 1. Try real login against backend to acquire a valid Bearer JWT
+  try {
+    const res = await loginUser(targetEmail, targetPassword);
+    if (res.success && res.user) {
+      return res.user;
+    }
+  } catch (err) {
+    console.warn('Switch role online login notice:', err);
+  }
+
+  // 2. Offline fallback
+  const fallbackUser = isTargetAdmin ? SEED_ADMIN : SEED_STUDENT;
+  const mockJwt = isTargetAdmin
+    ? `yp_jwt_adm_${Date.now()}`
+    : `yp_jwt_stu_${Date.now()}`;
+  setAuthToken(mockJwt);
+  setStoredUser(fallbackUser);
+  return fallbackUser;
+}
+
+export function isAdminUser(user) {
+  return Boolean(user && user.role === 'admin');
 }
 
 // --------------------------------------------------------------------------

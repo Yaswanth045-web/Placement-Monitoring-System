@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { UserPlus, Search, Filter, Trash2, Mail, GraduationCap, CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
-import { getAuthHeaders } from '../utils/authService';
+import { getAuthHeaders, getAuthToken } from '../utils/authService';
 import '../Styles/Student.css';
 
 const API_URL = API_ENDPOINTS.students;
 
-export default function Students({ students = [], setStudents, onStudentsChanged, currentUser }) {
-  const isStudent = currentUser?.role === 'student';
+export default function Students({ students = [], setStudents, onStudentsChanged, currentUser, onOpenAuth }) {
+  const isAdmin = currentUser?.role === 'admin';
+  const isStudent = !isAdmin;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -64,6 +65,18 @@ export default function Students({ students = [], setStudents, onStudentsChanged
     event.preventDefault();
     setError('');
 
+    if (!isAdmin) {
+      setError('Administrator clearance required: Please switch to Admin Clearance or sign in with an Administrator account (admin@yaswanth.edu / admin123).');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123) to enroll candidates.');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     if (!formData.name.trim() || !formData.email.trim() || !formData.branch.trim()) {
       setError('Please fill in student name, email, and branch.');
       return;
@@ -85,6 +98,9 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Failed to add student');
       }
 
@@ -105,6 +121,18 @@ export default function Students({ students = [], setStudents, onStudentsChanged
   }
 
   async function handleDelete(id) {
+    if (!isAdmin) {
+      setError('Administrator clearance required: Only Placement Officers can delete candidate records.');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this student record?')) {
       return;
     }
@@ -119,6 +147,9 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Failed to delete student');
       }
 

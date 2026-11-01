@@ -61,6 +61,35 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH: Update student status or details
+router.patch('/:id', async (req, res) => {
+  try {
+    const student = await Student.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Student record updated successfully',
+      data: student,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update student record',
+    });
+  }
+});
+
 // DELETE: Remove a student by MongoDB ID (Enforces Administrator Authorization)
 router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {

@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Building2, Plus, Search, MapPin, Globe, Briefcase, Trash2, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
-import { getAuthHeaders } from '../utils/authService';
+import { getAuthHeaders, getAuthToken } from '../utils/authService';
 import '../Styles/Companies.css';
 
 const API_URL = API_ENDPOINTS.companies;
 
-export default function Company({ companies = [], setCompanies, currentUser }) {
-  const isStudent = currentUser?.role === 'student';
+export default function Company({ companies = [], setCompanies, currentUser, onOpenAuth }) {
+  const isAdmin = currentUser?.role === 'admin';
+  const isStudent = !isAdmin;
   const [form, setForm] = useState({
     name: '',
     location: '',
@@ -59,6 +60,18 @@ export default function Company({ companies = [], setCompanies, currentUser }) {
     event.preventDefault();
     setError('');
 
+    if (!isAdmin) {
+      setError('Administrator clearance required: Please switch to Admin Clearance or sign in with an Administrator account (admin@yaswanth.edu / admin123).');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123) to register corporate partners.');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     if (!form.name.trim()) {
       setError('Company name is required.');
       return;
@@ -80,6 +93,9 @@ export default function Company({ companies = [], setCompanies, currentUser }) {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Unable to add company');
       }
 
@@ -99,6 +115,18 @@ export default function Company({ companies = [], setCompanies, currentUser }) {
   }
 
   async function handleDelete(id) {
+    if (!isAdmin) {
+      setError('Administrator clearance required: Only Placement Officers can delete company profiles.');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
     if (!window.confirm('Delete this partner company and its associated records?')) {
       return;
     }
@@ -113,6 +141,9 @@ export default function Company({ companies = [], setCompanies, currentUser }) {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
         throw new Error(result.message || 'Unable to delete company');
       }
 
