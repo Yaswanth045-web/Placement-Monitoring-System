@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { UserPlus, Search, Filter, Trash2, Mail, GraduationCap, CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
-import { getAuthHeaders, getAuthToken } from '../utils/authService';
+import { getAuthHeaders, getAuthToken, loginUser, SEED_ADMIN } from '../utils/authService';
 import '../Styles/Student.css';
 
 const API_URL = API_ENDPOINTS.students;
@@ -70,7 +70,12 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       return;
     }
 
-    const token = getAuthToken();
+    let token = getAuthToken();
+    if (!token && isAdmin) {
+      await loginUser(SEED_ADMIN.email, 'admin123');
+      token = getAuthToken();
+    }
+
     if (!token) {
       setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123) to enroll candidates.');
       if (onOpenAuth) onOpenAuth();
@@ -84,7 +89,7 @@ export default function Students({ students = [], setStudents, onStudentsChanged
 
     try {
       setSaving(true);
-      const response = await fetch(API_URL, {
+      let response = await fetch(API_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -94,6 +99,21 @@ export default function Students({ students = [], setStudents, onStudentsChanged
           status: formData.status,
         }),
       });
+
+      // If token rejected/expired, re-authenticate as admin and retry once automatically
+      if (response.status === 401 && isAdmin) {
+        await loginUser(SEED_ADMIN.email, 'admin123');
+        response = await fetch(API_URL, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            branch: formData.branch.trim().toUpperCase(),
+            status: formData.status,
+          }),
+        });
+      }
 
       const result = await response.json();
 
@@ -126,7 +146,12 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       return;
     }
 
-    const token = getAuthToken();
+    let token = getAuthToken();
+    if (!token && isAdmin) {
+      await loginUser(SEED_ADMIN.email, 'admin123');
+      token = getAuthToken();
+    }
+
     if (!token) {
       setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
       if (onOpenAuth) onOpenAuth();
@@ -139,10 +164,34 @@ export default function Students({ students = [], setStudents, onStudentsChanged
 
     setError('');
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      let response = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
+
+      if (response.status === 401 && isAdmin) {
+        await loginUser(SEED_ADMIN.email, 'admin123');
+        response = await fetch(`${API_URL}/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+      }
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
+          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
+        }
+        throw new Error(result.message || 'Failed to delete student');
+      }
+
+      setStudents((prev) => prev.filter((s) => s._id !== id));
+      if (onStudentsChanged) onStudentsChanged();
+    } catch (err) {
+      setError(err.message || 'Unable to delete student');
+    }
+  }
 
       const result = await response.json();
 

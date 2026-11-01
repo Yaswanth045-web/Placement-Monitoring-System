@@ -137,4 +137,11 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
+module.exports.app = app;
+module.exports.startServer = startServer;
+module.exports.seedDefaultAccounts = seedDefaultAccounts;

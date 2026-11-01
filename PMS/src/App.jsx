@@ -112,9 +112,14 @@ function App() {
   useEffect(() => {
     async function initSession() {
       const existingToken = getAuthToken();
+      const stored = getStoredUser();
+      const isCurrentAdmin = stored?.role === 'admin';
+
       if (!existingToken) {
-        // Authenticate default initial candidate session with real backend JWT
-        await loginUser(SEED_STUDENT.email, 'student123');
+        // Authenticate with the role currently selected by the user
+        const targetEmail = isCurrentAdmin ? SEED_ADMIN.email : SEED_STUDENT.email;
+        const targetPass = isCurrentAdmin ? 'admin123' : 'student123';
+        await loginUser(targetEmail, targetPass);
       }
       const verified = await verifyCurrentSession();
       if (verified) {

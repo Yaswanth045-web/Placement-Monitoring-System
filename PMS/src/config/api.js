@@ -1,11 +1,18 @@
 
 // Centralized API configuration for PlacementPulse
 
-const rawBase =
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:5000/api';
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  }
+  // When running on deployed environments (like Vercel), route to relative /api on current origin
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return `${window.location.origin}/api`;
+  }
+  return 'http://localhost:5000/api';
+};
 
-export const API_BASE = rawBase.replace(/\/+$/, '');
+export const API_BASE = getApiBase();
 
 export const API_ENDPOINTS = {
   health: `${API_BASE}/health`,
