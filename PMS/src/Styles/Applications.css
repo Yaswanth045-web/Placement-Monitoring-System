@@ -1,0 +1,49 @@
+/* ==========================================================================
+   APPLICATIONS MANAGEMENT STYLES — NOVA LIGHT PAPER THEME
+   ========================================================================== */
+
+.field-hint-warn {
+  font-size: 11px;
+  color: var(--rust-500);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+.app-status-select {
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  outline: none;
+  cursor: pointer;
+  background: var(--bg);
+  border: 1px solid var(--paper-border);
+  transition: all 0.2s ease;
+}
+
+.select-applied {
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.select-interview {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.select-selected {
+  color: #15803d;
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.select-rejected {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+}

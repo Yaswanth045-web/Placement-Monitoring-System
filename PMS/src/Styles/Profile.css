@@ -1,0 +1,201 @@
+/* ==========================================================================
+   PROFILE STYLES — NOVA CREDENTIAL CARD & SETTINGS
+   ========================================================================== */
+
+.profile-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  max-width: 860px;
+}
+
+.profile-credential-badge {
+  padding: 0 0 28px;
+  overflow: hidden;
+  background: var(--paper-panel);
+  border: 1px solid var(--paper-border);
+  border-radius: 4px;
+}
+
+.badge-hazard-strip {
+  height: 3px;
+  width: 100%;
+  background: var(--brand-linear);
+}
+
+.badge-top-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 28px 20px;
+  border-bottom: 1px solid var(--grid-line);
+}
+
+.badge-avatar-frame {
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1.5px solid var(--paper-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.badge-avatar-letter {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--rust-500);
+}
+
+.badge-meta-lockup {
+  display: flex;
+  flex-direction: column;
+}
+
+.officer-id-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--rust-500);
+  margin-bottom: 4px;
+}
+
+.officer-name {
+  margin: 0 0 6px;
+  font-family: var(--font-headline);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.officer-role-title {
+  font-size: 13.5px;
+  color: var(--dim-text);
+}
+
+.badge-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 24px 28px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--dim-text);
+  text-transform: uppercase;
+}
+
+.detail-val-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-icon {
+  color: var(--dim-text);
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.clearance-icon {
+  color: #16a34a;
+}
+
+.clearance-val {
+  color: #16a34a;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.persistence-notice-box {
+  margin: 0 28px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border: 1px solid var(--paper-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.notice-icon {
+  color: var(--rust-500);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--dim-text);
+}
+
+.notice-text strong {
+  color: var(--text);
+}
+
+.profile-toast-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 500;
+  animation: toastFade 0.3s ease-out;
+}
+
+@keyframes toastFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-edit-panel {
+  padding: 24px 28px;
+  background: var(--paper-panel);
+  border: 1px solid var(--paper-border);
+  border-radius: 4px;
+}
+
+.profile-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 650px) {
+  .badge-top-section {
+    flex-direction: column;
+    text-align: center;
+  }
+  .badge-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-edit-form {
+    grid-template-columns: 1fr;
+  }
+}

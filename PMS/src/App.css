@@ -1,0 +1,57 @@
+/* ==========================================================================
+   APP CONTAINER & CORE LAYOUT — NOVA MINIMALIST LIGHT
+   ========================================================================== */
+
+#root {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+main#main-content {
+  min-height: calc(100vh - 82px);
+  position: relative;
+  z-index: 2;
+}
+
+/* Clear the fixed 82px top navigation (30px top bar + 52px navbar) on all inner pages */
+main#main-content.main-inner {
+  padding-top: 86px;
+}
+
+main#main-content.main-home {
+  padding-top: 0;
+}
+
+@media (max-width: 900px) {
+  main#main-content.main-inner {
+    padding-top: 82px;
+  }
+}
+
+/* Accessible focus ring */
+:focus-visible {
+  outline: 2px solid var(--rust-500) !important;
+  outline-offset: 2px !important;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 20, 20, 0.18);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rust-500);
+}

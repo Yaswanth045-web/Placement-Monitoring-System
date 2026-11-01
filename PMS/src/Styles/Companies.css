@@ -1,0 +1,130 @@
+/* ==========================================================================
+   COMPANIES MANAGEMENT STYLES — NOVA LIGHT PAPER THEME
+   ========================================================================== */
+
+.companies-section-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.company-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 20px;
+}
+
+.company-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+  background: var(--paper-panel);
+  border: 1px solid var(--paper-border);
+  border-radius: 4px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.company-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(20, 20, 20, 0.25);
+  box-shadow: 0 8px 24px rgba(20, 20, 20, 0.06);
+}
+
+.company-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.company-logo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--paper-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--rust-500);
+}
+
+.company-delete-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--dim-text);
+  padding: 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.company-delete-icon-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.company-title {
+  margin: 0 0 14px;
+  font-family: var(--font-headline);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.company-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.company-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.meta-icon {
+  color: var(--dim-text);
+  flex-shrink: 0;
+}
+
+.company-website-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--bg);
+  border: 1px solid var(--paper-border);
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.company-website-link:hover {
+  background: #e8e4dc;
+  border-color: var(--rust-500);
+  color: var(--rust-500);
+}
+
+.no-website-text {
+  font-size: 12px;
+  color: var(--dim-text);
+  font-style: italic;
+  font-family: var(--font-mono);
+}
