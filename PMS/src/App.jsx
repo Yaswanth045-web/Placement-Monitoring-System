@@ -206,22 +206,9 @@ function App() {
     setCurrentUser(user);
   };
 
-  const handleSwitchRole = async (newRole) => {
-    try {
-      const updatedUser = await switchUserRole(newRole);
-      setCurrentUser(updatedUser);
-    } catch (err) {
-      console.warn('Switch role exception:', err);
-      const nextUser = newRole === 'admin' ? SEED_ADMIN : SEED_STUDENT;
-      setCurrentUser(nextUser);
-      setStoredUser(nextUser);
-    }
-  };
-
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
-    setIsAuthOpen(true);
   };
 
   return (
@@ -234,7 +221,6 @@ function App() {
         backendStatus={backendStatus}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
-        onSwitchRole={handleSwitchRole}
         onLogout={handleLogout}
       />
 

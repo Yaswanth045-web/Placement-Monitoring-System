@@ -13,7 +13,6 @@ import {
   LogIn,
   LogOut,
   ChevronDown,
-  Repeat,
 } from 'lucide-react';
 import '../Styles/Navbar.css';
 
@@ -24,7 +23,6 @@ export default function Navbar({
   backendStatus = 'Connected',
   currentUser,
   onOpenAuth,
-  onSwitchRole,
   onLogout,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -99,17 +97,7 @@ export default function Navbar({
             )}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {currentUser ? (
-              <button
-                type="button"
-                className="top-bar-switch-btn"
-                onClick={() => onSwitchRole && onSwitchRole(isAdmin ? 'student' : 'admin')}
-                title="Quickly switch between Student and Admin testing views"
-              >
-                <span className="desktop-only-inline">⇄ Toggle to {isAdmin ? 'Student Mode' : 'Admin Clearance'}</span>
-                <span className="mobile-only-inline">⇄ {isAdmin ? 'Student' : 'Admin'}</span>
-              </button>
-            ) : (
+            {!currentUser && (
               <button
                 type="button"
                 className="top-bar-switch-btn"
@@ -261,18 +249,6 @@ export default function Navbar({
                         type="button"
                         className="dropdown-item-btn"
                         onClick={() => {
-                          onSwitchRole && onSwitchRole(isAdmin ? 'student' : 'admin');
-                          setUserMenuOpen(false);
-                        }}
-                      >
-                        <Repeat size={14} />
-                        <span>SWITCH ROLE TO {isAdmin ? 'STUDENT' : 'ADMIN'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="dropdown-item-btn"
-                        onClick={() => {
                           setUserMenuOpen(false);
                           onOpenAuth();
                         }}
@@ -344,16 +320,6 @@ export default function Navbar({
                     <span className={`chip-role-badge ${isAdmin ? 'role-admin' : 'role-student'}`}>
                       {isAdmin ? 'ADMIN CLEARANCE' : 'STUDENT ACCESS'}
                     </span>
-                    <button
-                      type="button"
-                      className="btn-switch-role mono"
-                      onClick={() => {
-                        onSwitchRole(isAdmin ? 'student' : 'admin');
-                        setMobileMenuOpen(false);
-                      }}
-                    >
-                      Switch to {isAdmin ? 'Student' : 'Admin'}
-                    </button>
                   </div>
                   <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600 }}>{currentUser.name}</div>
                   <div style={{ fontSize: '11px', color: 'var(--dim-text)' }}>{currentUser.email}</div>
