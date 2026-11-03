@@ -545,7 +545,8 @@ export default function NovaRobotCanvas({ scrollProgress = 0 }) {
       let curHeadRoll = lerp(stateIntro.headRoll, stateProduct.headRoll, blendT);
 
       if (window.innerWidth <= 900) {
-        curCamZ *= 1.25;
+        curCamZ *= 1.4;
+        curCamY += 0.3;
       }
 
       const camOffsetX = smoothMouseX * 0.25;

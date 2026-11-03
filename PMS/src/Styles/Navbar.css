@@ -570,6 +570,8 @@
 .mobile-drawer-btn.active {
   border-color: var(--rust-500);
   color: var(--rust-500);
+  background: rgba(255, 90, 95, 0.06);
+  font-weight: 600;
 }
 
 .mobile-active-tag {
@@ -580,27 +582,194 @@
   border-radius: 2px;
 }
 
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 998;
+}
+
+.mobile-quick-launch-wrap {
+  margin-bottom: 12px;
+}
+
+.mobile-quick-launch-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--text);
+  color: #ffffff;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-quick-launch-btn:active {
+  transform: scale(0.98);
+}
+
+.mobile-menu-section-label {
+  font-size: 10px;
+  color: var(--dim-text);
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+
+.mobile-logout-btn {
+  color: #dc2626 !important;
+}
+
+.mobile-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.mobile-only-inline {
+  display: none;
+}
+
+.desktop-only-inline {
+  display: inline;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
-  .top-bar-inner {
-    padding: 0 16px;
+  .mobile-only-inline {
+    display: inline;
   }
-  .navbar-grid-wrapper {
-    grid-template-columns: 1fr auto;
-    padding: 0 16px;
-  }
-  .nav-logo-cell {
-    padding-left: 0;
-  }
-  .nav-menu-cell,
-  .nav-pad-cell,
-  .status-indicator-tag {
+  .desktop-only-inline {
     display: none;
   }
+
+  .top-bar-inner {
+    padding: 0 12px;
+  }
+
+  .top-bar-text {
+    font-size: 10.5px;
+    max-width: 65%;
+  }
+
+  .navbar-grid-wrapper {
+    grid-template-columns: 1fr auto;
+    padding: 0 12px;
+  }
+
+  .nav-logo-cell {
+    padding-left: 0;
+    min-width: 0;
+  }
+
+  .nav-brand-btn {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .nav-logo-icon {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
+  }
+
+  .nav-logo-title {
+    font-size: 13.5px;
+    max-width: 145px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nav-menu-cell,
+  .nav-pad-cell,
+  .status-indicator-tag,
+  .btn-launch {
+    display: none !important;
+  }
+
   .nav-btn-cell {
     padding-right: 0;
+    gap: 8px;
+    flex-shrink: 0;
   }
+
+  .nav-user-chip {
+    padding: 4px 6px;
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .chip-role-badge {
+    font-size: 8.5px;
+    padding: 1.5px 4px;
+  }
+
+  .chip-user-name {
+    max-width: 52px;
+    font-size: 10px;
+  }
+
   .mobile-toggle-btn {
-    display: flex;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    background: var(--paper-panel);
+    border: 1px solid var(--paper-border);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .mobile-toggle-btn:hover {
+    background: #ede8de;
+    border-color: rgba(20, 20, 20, 0.25);
+  }
+
+  .mobile-nav-drawer {
+    position: fixed !important;
+    top: 82px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: calc(100vh - 82px) !important;
+    max-height: calc(100dvh - 82px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1000 !important;
+    background: rgba(239, 236, 230, 0.98) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-bottom: 2px solid var(--paper-border) !important;
+    box-shadow: 0 16px 36px rgba(20, 20, 20, 0.16) !important;
+    padding: 16px 16px 28px !important;
+  }
+
+  .nova-navbar.scrolled-up .mobile-nav-drawer {
+    top: 52px !important;
+    max-height: calc(100vh - 52px) !important;
+    max-height: calc(100dvh - 52px) !important;
+  }
+
+  .mobile-drawer-btn {
+    padding: 11px 14px;
+    font-size: 12.5px;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-drawer-btn:active {
+    background: #e5e0d5;
   }
 }

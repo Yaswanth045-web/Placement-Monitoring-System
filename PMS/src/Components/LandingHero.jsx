@@ -72,6 +72,13 @@ export default function LandingHero({
   ];
 
   const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 900);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -88,13 +95,13 @@ export default function LandingHero({
       num: "01",
       name: "Dr. Arvind Rao",
       role: "Dean of Career Affairs, Halden Institute",
-      quote: "“Campus placement operations and eligibility auditing used to be an administrative bottleneck. Yaswanth Placement solves this in seconds."
+      quote: "“Campus placement operations and eligibility auditing used to be an administrative bottleneck. Placement Tracker solves this in seconds."
     },
     {
       num: "02",
       name: "Rhea Okafor",
       role: "Head of University Hiring, Tessel Network",
-      quote: "Yaswanth Placement is a vital asset for tech recruiters, simplifying student shortlisting and verified profile review effortlessly."
+      quote: "Placement Tracker is a vital asset for tech recruiters, simplifying student shortlisting and verified profile review effortlessly."
     },
     {
       num: "03",
@@ -178,6 +185,11 @@ export default function LandingHero({
             </div>
           </div>
 
+          {/* Sub line positioned cleanly between headline and CTAs on mobile */}
+          <p className="intro-sub-line-mobile">
+            Your personal expert in all campus placements &amp; career analytics.
+          </p>
+
           <div className="intro-cta-row">
             <button
               type="button"
@@ -198,8 +210,8 @@ export default function LandingHero({
           </div>
         </div>
 
-        {/* Sub line */}
-        <p className="intro-sub-line">
+        {/* Sub line (desktop only) */}
+        <p className="intro-sub-line intro-sub-line-desktop">
           Your personal expert in all campus placements &amp; career analytics.
         </p>
 
@@ -278,7 +290,7 @@ export default function LandingHero({
         <div className="product-carousel-strip">
           <div
             className="product-carousel-track"
-            style={{ transform: `translateX(-${activeTabIdx * 33}vw)` }}
+            style={{ transform: `translateX(-${activeTabIdx * (isMobile ? 82 : 33)}vw)` }}
           >
             {tabLabels.map((label, idx) => {
               const numFormatted = String(idx + 1).padStart(2, '0');
@@ -393,7 +405,7 @@ export default function LandingHero({
 
       {/* Footer */}
       <footer className="nova-footer mono">
-        YASWANTH PLACEMENT · 2026
+        PLACEMENT TRACKER · 2026
       </footer>
     </div>
   );

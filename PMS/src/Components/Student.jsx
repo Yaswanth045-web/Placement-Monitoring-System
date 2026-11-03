@@ -193,22 +193,6 @@ export default function Students({ students = [], setStudents, onStudentsChanged
     }
   }
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
-        throw new Error(result.message || 'Failed to delete student');
-      }
-
-      setStudents((prev) => prev.filter((s) => s._id !== id));
-      if (onStudentsChanged) onStudentsChanged();
-    } catch (err) {
-      setError(err.message || 'Unable to delete student');
-    }
-  }
-
   // Extract unique branches for filter
   const branchOptions = useMemo(() => {
     const set = new Set();

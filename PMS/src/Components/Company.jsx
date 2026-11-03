@@ -186,21 +186,6 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
     }
   }
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
-        throw new Error(result.message || 'Unable to delete company');
-      }
-
-      setCompanies((prev) => prev.filter((c) => (c._id || c.id) !== id));
-    } catch (err) {
-      setError(err.message || 'Unable to delete company');
-    }
-  }
-
   // Extract unique industries for filter
   const industryOptions = useMemo(() => {
     const set = new Set();

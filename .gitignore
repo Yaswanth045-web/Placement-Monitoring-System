@@ -1,0 +1,8 @@
+node_modules/
+package.json
+package-lock.json
+*.docx
+create_report_docx.js
+extracted_docx/
+.env
+.env.*

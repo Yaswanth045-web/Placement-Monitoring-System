@@ -29,7 +29,10 @@ function App() {
   const [activePage, setActivePage] = useState('Home');
 
   // Authentication State with Student/Admin role support
-  const [currentUser, setCurrentUser] = useState(() => getStoredUser());
+  const [currentUser, setCurrentUser] = useState(() => {
+    const token = getAuthToken();
+    return token ? getStoredUser() : null;
+  });
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   const [students, setStudents] = useState([]);
@@ -112,18 +115,15 @@ function App() {
   useEffect(() => {
     async function initSession() {
       const existingToken = getAuthToken();
-      const stored = getStoredUser();
-      const isCurrentAdmin = stored?.role === 'admin';
-
-      if (!existingToken) {
-        // Authenticate with the role currently selected by the user
-        const targetEmail = isCurrentAdmin ? SEED_ADMIN.email : SEED_STUDENT.email;
-        const targetPass = isCurrentAdmin ? 'admin123' : 'student123';
-        await loginUser(targetEmail, targetPass);
-      }
-      const verified = await verifyCurrentSession();
-      if (verified) {
-        setCurrentUser(verified);
+      if (existingToken) {
+        const verified = await verifyCurrentSession();
+        if (verified) {
+          setCurrentUser(verified);
+        } else {
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
       }
     }
     initSession();

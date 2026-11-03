@@ -242,23 +242,6 @@ export default function Applications({
     }
   }
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
-        throw new Error(result.message || 'Failed to delete application');
-      }
-
-      setApplications((prev) =>
-        prev.filter((app) => String(app._id || app.id) !== String(applicationId))
-      );
-    } catch (err) {
-      setError(err.message || 'Unable to delete application');
-    }
-  }
-
   // Filtered applications
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {

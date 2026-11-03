@@ -1,8 +1,14 @@
 import { API_ENDPOINTS } from '../config/api';
 
-const TOKEN_KEY = 'yaswanth_auth_jwt_token';
-const USER_KEY = 'yaswanth_auth_user_dossier';
-const ACCOUNTS_STORE_KEY = 'yaswanth_registered_directory';
+const TOKEN_KEY = 'placement_tracker_jwt_token';
+const USER_KEY = 'placement_tracker_user_dossier';
+const ACCOUNTS_STORE_KEY = 'placement_tracker_registered_directory';
+
+// Purge any legacy auto-seeded session keys from earlier sessions
+try {
+  localStorage.removeItem('yaswanth_auth_jwt_token');
+  localStorage.removeItem('yaswanth_auth_user_dossier');
+} catch {}
 
 export const ADMIN_SECRET_KEY = 'YP-ADMIN-2026';
 
@@ -76,11 +82,9 @@ export function getStoredUser() {
     if (raw) {
       return JSON.parse(raw);
     }
-    // Default initial session is Student Candidate so role limits are immediately visible
-    setStoredUser(SEED_STUDENT);
-    return SEED_STUDENT;
+    return null;
   } catch {
-    return SEED_STUDENT;
+    return null;
   }
 }
 
@@ -101,7 +105,10 @@ export function setStoredUser(user) {
 // --------------------------------------------------------------------------
 export async function verifyCurrentSession() {
   const token = getAuthToken();
-  if (!token) return getStoredUser();
+  if (!token) {
+    setStoredUser(null);
+    return null;
+  }
 
   try {
     const res = await fetch(API_ENDPOINTS.auth.me, {
@@ -118,6 +125,8 @@ export async function verifyCurrentSession() {
     if (res.status === 401) {
       console.warn('Stored token is invalid or expired. Resetting session token.');
       setAuthToken(null);
+      setStoredUser(null);
+      return null;
     }
   } catch {
     // If backend is offline, preserve active stored session
