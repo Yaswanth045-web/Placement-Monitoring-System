@@ -8,32 +8,33 @@ import DashboardView from './Components/DashboardView';
 import Students from './Components/Student';
 import Company from './Components/Company';
 import Applications from './Components/Applications';
+import Drives from './Components/Drives';
 import Profile from './Components/Profile';
 import ContactModal from './Components/ContactModal';
-import AuthModal from './Components/AuthModal';
+import LoginPage from './Components/LoginPage';
 
 import { API_ENDPOINTS } from './config/api';
 import {
   getStoredUser,
-  setStoredUser,
   logoutUser,
   verifyCurrentSession,
   getAuthToken,
-  loginUser,
-  switchUserRole,
-  SEED_ADMIN,
-  SEED_STUDENT,
+  getAuthHeaders,
 } from './utils/authService';
 
 function App() {
-  const [activePage, setActivePage] = useState('Home');
-
-  // Authentication State with Student/Admin role support
+  // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     const token = getAuthToken();
     return token ? getStoredUser() : null;
   });
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // If user is not authenticated when visiting the link, show the separate Login Page first!
+  const [activePage, setActivePage] = useState(() => {
+    const token = getAuthToken();
+    const user = token ? getStoredUser() : null;
+    return user ? 'Dashboard' : 'Login';
+  });
 
   const [students, setStudents] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -121,6 +122,7 @@ function App() {
           setCurrentUser(verified);
         } else {
           setCurrentUser(null);
+          setActivePage('Login');
         }
       } else {
         setCurrentUser(null);
@@ -130,65 +132,95 @@ function App() {
     refreshAllData();
   }, [refreshAllData]);
 
-  // Synchronize application changes with student placement status in MongoDB
+  // Synchronize application changes with candidate placement status in MongoDB & UI
   const handleApplicationStatusChange = useCallback(
-    (applicationId, newStatus) => {
-      const updatedApplications = applications.map((application) =>
-        String(application._id || application.id) === String(applicationId)
-          ? { ...application, status: newStatus }
-          : application
+    async (applicationId, newStatus) => {
+      const targetApp = applications.find(
+        (app) => String(app._id || app.id) === String(applicationId)
       );
 
+      // 1. If candidate is Selected, remove application from the tracker; otherwise update status
+      const updatedApplications =
+        newStatus === 'Selected' || newStatus === 'Deleted'
+          ? applications.filter(
+              (app) => String(app._id || app.id) !== String(applicationId)
+            )
+          : applications.map((app) =>
+              String(app._id || app.id) === String(applicationId)
+                ? { ...app, status: newStatus }
+                : app
+            );
       setApplications(updatedApplications);
 
-      const selectedStudentIds = new Set(
-        updatedApplications
-          .filter((application) => application.status === 'Selected')
-          .map((application) => String(application.studentId))
-      );
-
+      // 2. Recompute placement status for each candidate based on applications:
+      // If newly selected -> candidate is Placed!
       const updatedStudents = students.map((student) => {
-        const isSelected = selectedStudentIds.has(
-          String(student._id || student.id)
-        );
+        const isTargetStudent =
+          (targetApp?.studentId &&
+            String(targetApp.studentId) === String(student._id || student.id)) ||
+          (targetApp?.studentName &&
+            student.name &&
+            targetApp.studentName.trim().toLowerCase() ===
+              student.name.trim().toLowerCase());
 
-        if (isSelected && student.status !== 'Placed') {
+        if (newStatus === 'Selected' && isTargetStudent) {
           return { ...student, status: 'Placed' };
         }
 
-        if (!isSelected && student.status === 'Placed') {
-          return { ...student, status: 'Not Placed' };
+        const studentApps = updatedApplications.filter((app) => {
+          const matchId =
+            app.studentId &&
+            String(app.studentId) === String(student._id || student.id);
+          const matchName =
+            app.studentName &&
+            student.name &&
+            app.studentName.trim().toLowerCase() ===
+              student.name.trim().toLowerCase();
+          return matchId || matchName;
+        });
+
+        if (studentApps.length === 0) {
+          return student.status === 'Placed' ? student : student;
         }
 
-        return student;
+        let computedStatus = 'Not Placed';
+        if (studentApps.some((app) => app.status === 'Selected')) {
+          computedStatus = 'Placed';
+        } else if (studentApps.some((app) => app.status === 'Interview')) {
+          computedStatus = 'Interview';
+        } else if (studentApps.some((app) => app.status === 'Applied')) {
+          computedStatus = 'Applied';
+        }
+
+        return { ...student, status: computedStatus };
       });
 
-      // Update the interface and persist changed statuses to MongoDB
-      const changedStudents = updatedStudents.filter(
-        (student, index) => student.status !== students[index]?.status
-      );
-
+      // Update student directory immediately in UI with zero delay
       setStudents(updatedStudents);
 
-      changedStudents.forEach(async (student) => {
+      // 3. Persist changed student records to backend API
+      const changedStudents = updatedStudents.filter((student, index) => {
+        const prevStudent = students[index];
+        return prevStudent && student.status !== prevStudent.status;
+      });
+
+      for (const student of changedStudents) {
+        const studentIdentifier = student._id || student.id || student.name;
+        if (!studentIdentifier) continue;
+
         try {
-          const response = await fetch(`${API_ENDPOINTS.students}/${student._id}`, {
+          await fetch(`${API_ENDPOINTS.students}/${studentIdentifier}`, {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ status: student.status }),
           });
-
-          if (!response.ok) {
-            console.error('Failed to save placement status for', student.name);
-            fetchStudents();
-          }
         } catch (error) {
-          console.error('Unable to save placement status:', error);
-          fetchStudents();
+          console.warn('Student status sync request note:', error);
         }
-      });
+      }
+
+      // Re-fetch to ensure complete consistency with MongoDB Atlas
+      fetchStudents();
     },
     [applications, students, fetchStudents]
   );
@@ -202,29 +234,44 @@ function App() {
       ? Math.round((studentsPlaced / totalStudents) * 100)
       : 0;
 
-  const handleAuthSuccess = (user) => {
+  // Once user logs in on the separate Login page, enter into the website!
+  const handleLoginSuccess = (user) => {
     setCurrentUser(user);
+    setActivePage('Dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
+    setActivePage('Login');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // If user is on separate Login page, render the standalone LoginPage component
+  if (activePage === 'Login') {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onExploreLanding={() => setActivePage('Home')}
+      />
+    );
+  }
 
   return (
     <div className="placement-app-wrapper">
-      {/* Top Industrial Navbar */}
+      {/* Modern Top Header / Navbar */}
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
         onOpenContact={() => setIsContactOpen(true)}
         backendStatus={backendStatus}
         currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenAuth={() => setActivePage('Login')}
         onLogout={handleLogout}
       />
 
-      {/* Main Routed Content */}
+      {/* Main Content Router */}
       <main
         id="main-content"
         className={activePage === 'Home' ? 'main-home' : 'main-inner'}
@@ -237,6 +284,7 @@ function App() {
             studentsPlaced={studentsPlaced}
             totalCompanies={totalCompanies}
             placementRate={placementRate}
+            currentUser={currentUser}
           />
         )}
 
@@ -252,13 +300,24 @@ function App() {
           />
         )}
 
+        {activePage === 'Drives' && (
+          <Drives
+            currentUser={currentUser}
+            applications={applications}
+            setApplications={setApplications}
+            students={students}
+            companies={companies}
+            onNavigate={setActivePage}
+          />
+        )}
+
         {activePage === 'Students' && (
           <Students
             students={students}
             setStudents={setStudents}
             onStudentsChanged={fetchStudents}
             currentUser={currentUser}
-            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenAuth={() => setActivePage('Login')}
           />
         )}
 
@@ -267,7 +326,7 @@ function App() {
             companies={companies}
             setCompanies={setCompanies}
             currentUser={currentUser}
-            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenAuth={() => setActivePage('Login')}
           />
         )}
 
@@ -279,7 +338,7 @@ function App() {
             setApplications={setApplications}
             onApplicationStatusChange={handleApplicationStatusChange}
             currentUser={currentUser}
-            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenAuth={() => setActivePage('Login')}
           />
         )}
 
@@ -295,13 +354,6 @@ function App() {
       <ContactModal
         isOpen={isContactOpen}
         onClose={() => setIsContactOpen(false)}
-      />
-
-      {/* Identity & Role Gateway Auth Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={handleAuthSuccess}
       />
     </div>
   );

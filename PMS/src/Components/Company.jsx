@@ -1,18 +1,36 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Building2, Plus, Search, MapPin, Globe, Briefcase, Trash2, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Building2,
+  Plus,
+  Search,
+  MapPin,
+  Globe,
+  Briefcase,
+  Trash2,
+  ExternalLink,
+  RefreshCw,
+  AlertCircle,
+  X,
+  Shield,
+  Sparkles,
+} from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
 import { getAuthHeaders, getAuthToken, loginUser, SEED_ADMIN } from '../utils/authService';
 import '../Styles/Companies.css';
 
 const API_URL = API_ENDPOINTS.companies;
 
-export default function Company({ companies = [], setCompanies, currentUser, onOpenAuth }) {
+export default function Company({
+  companies = [],
+  setCompanies,
+  currentUser,
+  onOpenAuth,
+}) {
   const isAdmin = currentUser?.role === 'admin';
-  const isStudent = !isAdmin;
   const [form, setForm] = useState({
     name: '',
     location: '',
-    industry: '',
+    industry: 'Technology',
     website: '',
   });
 
@@ -21,7 +39,7 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [industryFilter, setIndustryFilter] = useState('ALL');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   async function loadCompanies() {
     try {
@@ -61,7 +79,7 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
     setError('');
 
     if (!isAdmin) {
-      setError('Administrator clearance required: Please switch to Admin Clearance or sign in with an Administrator account (admin@yaswanth.edu / admin123).');
+      setError('Admin access required to register new corporate recruiters.');
       return;
     }
 
@@ -69,12 +87,6 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
     if (!token && isAdmin) {
       await loginUser(SEED_ADMIN.email, 'admin123');
       token = getAuthToken();
-    }
-
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123) to register corporate partners.');
-      if (onOpenAuth) onOpenAuth();
-      return;
     }
 
     if (!form.name.trim()) {
@@ -89,13 +101,12 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
         headers: getAuthHeaders(),
         body: JSON.stringify({
           name: form.name.trim(),
-          location: form.location.trim(),
-          industry: form.industry.trim(),
+          location: form.location.trim() || 'Remote / Hybrid',
+          industry: form.industry.trim() || 'Technology',
           website: form.website.trim(),
         }),
       });
 
-      // If token expired, auto-refresh and retry once
       if (response.status === 401 && isAdmin) {
         await loginUser(SEED_ADMIN.email, 'admin123');
         response = await fetch(API_URL, {
@@ -103,8 +114,8 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
           headers: getAuthHeaders(),
           body: JSON.stringify({
             name: form.name.trim(),
-            location: form.location.trim(),
-            industry: form.industry.trim(),
+            location: form.location.trim() || 'Remote / Hybrid',
+            industry: form.industry.trim() || 'Technology',
             website: form.website.trim(),
           }),
         });
@@ -113,9 +124,6 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Unable to add company');
       }
 
@@ -123,10 +131,10 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
       setForm({
         name: '',
         location: '',
-        industry: '',
+        industry: 'Technology',
         website: '',
       });
-      setShowAddForm(false);
+      setShowAddModal(false);
     } catch (err) {
       setError(err.message || 'Unable to save company');
     } finally {
@@ -136,23 +144,11 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
 
   async function handleDelete(id) {
     if (!isAdmin) {
-      setError('Administrator clearance required: Only Placement Officers can delete company profiles.');
+      setError('Admin privileges required to remove company records.');
       return;
     }
 
-    let token = getAuthToken();
-    if (!token && isAdmin) {
-      await loginUser(SEED_ADMIN.email, 'admin123');
-      token = getAuthToken();
-    }
-
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-
-    if (!window.confirm('Delete this partner company and its associated records?')) {
+    if (!window.confirm('Delete this partner company record?')) {
       return;
     }
 
@@ -174,9 +170,6 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Unable to delete company');
       }
 
@@ -186,287 +179,271 @@ export default function Company({ companies = [], setCompanies, currentUser, onO
     }
   }
 
-  // Extract unique industries for filter
-  const industryOptions = useMemo(() => {
-    const set = new Set();
-    companies.forEach((c) => {
-      if (c.industry) set.add(c.industry.trim());
-    });
-    return Array.from(set).sort();
-  }, [companies]);
-
   // Filtered companies
   const filteredCompanies = useMemo(() => {
     return companies.filter((c) => {
-      const matchesSearch =
+      const matchSearch =
         (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.industry || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesIndustry =
+      const matchIndustry =
         industryFilter === 'ALL' ||
-        (c.industry || '').trim() === industryFilter;
+        (c.industry || '').toLowerCase() === industryFilter.toLowerCase();
 
-      return matchesSearch && matchesIndustry;
+      return matchSearch && matchIndustry;
     });
   }, [companies, searchTerm, industryFilter]);
 
+  const industries = ['ALL', 'Technology', 'Finance', 'Consulting', 'E-Commerce', 'Healthcare'];
+
   return (
-    <div className="management-page-container">
+    <div className="modern-management-page">
       {/* Header */}
-      <div className="management-header-row">
+      <div className="page-header-row">
         <div>
-          <div className="mgmt-badge">CORPORATE NETWORK // MODULE 03</div>
-          <h2 className="mgmt-title">PARTNER COMPANIES</h2>
-          <p className="mgmt-subtitle">
-            Recruiter directory, enterprise placement partnerships, and industry domains.
+          <h1 className="page-main-title">Recruiter Directory</h1>
+          <p className="page-sub-title">
+            Explore partner hiring companies, industry sectors, and campus visit drives.
           </p>
         </div>
 
-        <div className="mgmt-actions-group">
+        <div className="page-header-actions">
           <button
             type="button"
-            className="btn-steel btn-sm"
+            className="secondary-action-btn"
             onClick={loadCompanies}
             disabled={loading}
           >
-            <RefreshCw size={14} className={loading ? 'spin-icon' : ''} />
-            <span>REFRESH</span>
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
           </button>
 
-          {!isStudent ? (
+          {isAdmin ? (
             <button
               type="button"
-              className="btn-rust btn-sm"
-              onClick={() => setShowAddForm(!showAddForm)}
+              className="primary-action-btn"
+              onClick={() => setShowAddModal(true)}
             >
               <Plus size={16} />
-              <span>{showAddForm ? 'CLOSE FORM' : '+ ADD COMPANY'}</span>
+              <span>Register Recruiter</span>
             </button>
           ) : (
-            <div
-              className="mgmt-role-tag mono"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                padding: '7px 12px',
-                background: 'rgba(255, 138, 61, 0.1)',
-                border: '1px solid rgba(255, 138, 61, 0.3)',
-                borderRadius: '3px',
-                color: '#ff8a3d',
-                letterSpacing: '0.06em',
-                fontWeight: 500,
-              }}
-            >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ff8a3d' }} />
-              <span>STUDENT VIEW // READ-ONLY</span>
+            <div className="student-view-pill">
+              <Shield size={14} />
+              <span>Student View (Read-Only)</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="mgmt-alert-error" role="alert">
-          <AlertCircle size={18} />
+        <div className="page-alert-banner">
+          <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Add Company Section */}
-      {!isStudent && showAddForm && (
-        <section className="mgmt-form-card industrial-rivet-card">
-          <div className="form-card-header">
-            <h3 className="form-card-title">REGISTER PARTNER COMPANY</h3>
-            <span className="form-card-code">FORM // CORP-NEW</span>
-          </div>
-
-          <form className="student-grid-form" onSubmit={handleSubmit}>
-            <div className="form-field-group">
-              <label htmlFor="company-name">Company Name *</label>
-              <input
-                id="company-name"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="e.g. Google, Microsoft, Infosys"
-                required
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="company-location">Location / Headquarters</label>
-              <input
-                id="company-location"
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                placeholder="e.g. Bengaluru, Hyderabad, San Jose"
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="company-industry">Industry Domain</label>
-              <input
-                id="company-industry"
-                name="industry"
-                value={form.industry}
-                onChange={handleChange}
-                placeholder="e.g. Technology, Cloud Computing, FinTech"
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="company-website">Website URL</label>
-              <input
-                id="company-website"
-                name="website"
-                value={form.website}
-                onChange={handleChange}
-                placeholder="https://company.com"
-              />
-            </div>
-
-            <div className="form-buttons-row">
-              <button
-                type="button"
-                className="btn-steel btn-sm"
-                onClick={() => setShowAddForm(false)}
-              >
-                CANCEL
-              </button>
-              <button
-                type="submit"
-                className="btn-rust btn-sm"
-                disabled={saving}
-              >
-                {saving ? 'REGISTERING...' : 'REGISTER RECRUITER'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="mgmt-filter-toolbar industrial-rivet-card">
-        <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
+      {/* Filter bar */}
+      <div className="filter-controls-card">
+        <div className="search-input-box">
+          <Search size={17} className="search-box-icon" />
           <input
             type="text"
-            placeholder="Search company by name, location, or industry..."
+            className="clean-search-field"
+            placeholder="Search by company name, location, or sector..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => setSearchTerm('')}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        <div className="filter-selects-row">
-          <div className="filter-item">
-            <span className="filter-label">INDUSTRY:</span>
+        <div className="filter-dropdowns-row">
+          <div className="select-pill-group">
+            <span className="select-label">Industry:</span>
             <select
+              className="pill-select"
               value={industryFilter}
               onChange={(e) => setIndustryFilter(e.target.value)}
-              className="filter-select"
             >
-              <option value="ALL">ALL DOMAINS</option>
-              {industryOptions.map((ind) => (
-                <option key={ind} value={ind}>{ind}</option>
+              {industries.map((ind) => (
+                <option key={ind} value={ind}>
+                  {ind === 'ALL' ? 'All Industries' : ind}
+                </option>
               ))}
             </select>
           </div>
         </div>
       </div>
 
-      {/* Companies Grid */}
-      <section className="companies-section-wrapper">
-        <div className="table-header-row">
-          <div className="table-count-badge">
-            SHOWING <strong>{filteredCompanies.length}</strong> OF <strong>{companies.length}</strong> REGISTERED RECRUITERS
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="mgmt-loading-state industrial-rivet-card">
-            <RefreshCw size={28} className="spin-icon" />
-            <p>Loading company directory from MongoDB Atlas...</p>
-          </div>
-        ) : filteredCompanies.length === 0 ? (
-          <div className="mgmt-empty-state industrial-rivet-card">
-            <Building2 size={40} className="empty-state-icon" />
-            <h4>NO PARTNER COMPANIES REGISTERED</h4>
-            <p>
-              {companies.length === 0
-                ? 'No recruiters registered yet. Click "+ Add Company" above to register campus recruiters.'
-                : 'No companies match your current search query.'}
-            </p>
-            {!isStudent && companies.length === 0 && (
-              <button
-                type="button"
-                className="btn-rust btn-sm"
-                onClick={() => setShowAddForm(true)}
-              >
-                + ADD FIRST PARTNER
-              </button>
-            )}
+      {/* Company Cards Grid */}
+      <div className="companies-grid-container">
+        {filteredCompanies.length === 0 ? (
+          <div className="empty-results-box" style={{ gridColumn: '1 / -1' }}>
+            <Building2 size={40} className="empty-icon" />
+            <p className="empty-title">No partner recruiters found</p>
+            <p className="empty-desc">Try clearing search filters.</p>
           </div>
         ) : (
-          <div className="company-cards-grid">
-            {filteredCompanies.map((company) => {
-              const companyId = company._id || company.id;
-              return (
-                <article className="company-card industrial-rivet-card" key={companyId}>
-                  <div className="company-card-top">
-                    <div className="company-logo-avatar">
-                      {(company.name || 'C').charAt(0).toUpperCase()}
-                    </div>
-                    {!isStudent && (
-                      <button
-                        type="button"
-                        className="company-delete-icon-btn"
-                        onClick={() => handleDelete(companyId)}
-                        title="Delete company"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
+          filteredCompanies.map((company) => {
+            const initial = (company.name || 'C')[0].toUpperCase();
+            return (
+              <div key={company._id || company.id} className="company-card">
+                <div className="company-card-top">
+                  <div className="company-logo-avatar">{initial}</div>
+                  <div className="company-info-col">
+                    <h3 className="company-name">{company.name}</h3>
+                    <span className="company-industry-tag">
+                      {company.industry || 'Technology'}
+                    </span>
                   </div>
-
-                  <h3 className="company-title">{company.name}</h3>
-
-                  <div className="company-meta-list">
-                    <div className="company-meta-item">
-                      <Briefcase size={14} className="meta-icon" />
-                      <span>{company.industry || 'Domain: General'}</span>
-                    </div>
-
-                    <div className="company-meta-item">
-                      <MapPin size={14} className="meta-icon" />
-                      <span>{company.location || 'Location: Remote / Multiple'}</span>
-                    </div>
-                  </div>
-
-                  {company.website ? (
-                    <a
-                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="company-website-link"
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="delete-card-btn"
+                      onClick={() => handleDelete(company._id || company.id)}
+                      title="Remove company"
                     >
-                      <Globe size={13} />
-                      <span>Visit Corporate Portal</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  ) : (
-                    <span className="no-website-text">Corporate site not listed</span>
+                      <Trash2 size={15} />
+                    </button>
                   )}
-                </article>
-              );
-            })}
-          </div>
+                </div>
+
+                <div className="company-card-details">
+                  <div className="detail-item">
+                    <MapPin size={14} className="detail-icon" />
+                    <span>{company.location || 'Bangalore / Hybrid'}</span>
+                  </div>
+                  {company.website && (
+                    <div className="detail-item">
+                      <Globe size={14} className="detail-icon" />
+                      <a
+                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="company-website-link"
+                      >
+                        <span>{company.website.replace(/^https?:\/\//, '')}</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="company-card-footer">
+                  <span className="drive-status-pill">
+                    <span className="live-dot" />
+                    <span>Active Drive 2026</span>
+                  </span>
+                </div>
+              </div>
+            );
+          })
         )}
-      </section>
+      </div>
+
+      {/* Register Recruiter Modal */}
+      {showAddModal && (
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div className="modal-card-header">
+              <div className="modal-title-row">
+                <Building2 size={18} className="text-indigo" />
+                <h3 className="modal-title">Register Partner Recruiter</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="modal-form-body">
+              <div className="form-group">
+                <label className="form-label">Company Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="modal-input"
+                  placeholder="e.g. Google, Microsoft, Adobe"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label className="form-label">Location / Work Mode</label>
+                  <input
+                    type="text"
+                    name="location"
+                    className="modal-input"
+                    placeholder="e.g. Hyderabad / Hybrid"
+                    value={form.location}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Industry</label>
+                  <select
+                    name="industry"
+                    className="modal-select"
+                    value={form.industry}
+                    onChange={handleChange}
+                  >
+                    <option value="Technology">Technology</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Consulting">Consulting</option>
+                    <option value="E-Commerce">E-Commerce</option>
+                    <option value="Healthcare">Healthcare</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Website / Career Page</label>
+                <input
+                  type="text"
+                  name="website"
+                  className="modal-input"
+                  placeholder="e.g. careers.google.com"
+                  value={form.website}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="modal-card-footer">
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-submit-btn"
+                  disabled={saving}
+                >
+                  {saving ? 'Registering...' : 'Save Recruiter'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

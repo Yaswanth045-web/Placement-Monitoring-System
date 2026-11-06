@@ -1,26 +1,47 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { UserPlus, Search, Filter, Trash2, Mail, GraduationCap, CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  UserPlus,
+  Search,
+  Filter,
+  Trash2,
+  Mail,
+  GraduationCap,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+  X,
+  Plus,
+  Shield,
+  Award,
+  Download,
+} from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
 import { getAuthHeaders, getAuthToken, loginUser, SEED_ADMIN } from '../utils/authService';
 import '../Styles/Student.css';
 
 const API_URL = API_ENDPOINTS.students;
 
-export default function Students({ students = [], setStudents, onStudentsChanged, currentUser, onOpenAuth }) {
+export default function Students({
+  students = [],
+  setStudents,
+  onStudentsChanged,
+  currentUser,
+  onOpenAuth,
+}) {
   const isAdmin = currentUser?.role === 'admin';
-  const isStudent = !isAdmin;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [branchFilter, setBranchFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    branch: '',
+    branch: 'CSE',
     status: 'Not Placed',
   });
 
@@ -47,7 +68,6 @@ export default function Students({ students = [], setStudents, onStudentsChanged
   }
 
   useEffect(() => {
-    // Only fetch if empty
     if (students.length === 0) {
       fetchStudents();
     }
@@ -66,7 +86,7 @@ export default function Students({ students = [], setStudents, onStudentsChanged
     setError('');
 
     if (!isAdmin) {
-      setError('Administrator clearance required: Please switch to Admin Clearance or sign in with an Administrator account (admin@yaswanth.edu / admin123).');
+      setError('Admin access required to enroll new candidates.');
       return;
     }
 
@@ -76,14 +96,8 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       token = getAuthToken();
     }
 
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123) to enroll candidates.');
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-
     if (!formData.name.trim() || !formData.email.trim() || !formData.branch.trim()) {
-      setError('Please fill in student name, email, and branch.');
+      setError('Please fill in candidate name, email, and branch.');
       return;
     }
 
@@ -100,7 +114,6 @@ export default function Students({ students = [], setStudents, onStudentsChanged
         }),
       });
 
-      // If token rejected/expired, re-authenticate as admin and retry once automatically
       if (response.status === 401 && isAdmin) {
         await loginUser(SEED_ADMIN.email, 'admin123');
         response = await fetch(API_URL, {
@@ -118,9 +131,6 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Failed to add student');
       }
 
@@ -128,10 +138,10 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       setFormData({
         name: '',
         email: '',
-        branch: '',
+        branch: 'CSE',
         status: 'Not Placed',
       });
-      setShowAddForm(false);
+      setShowAddModal(false);
       if (onStudentsChanged) onStudentsChanged();
     } catch (err) {
       setError(err.message || 'Unable to add student');
@@ -142,23 +152,11 @@ export default function Students({ students = [], setStudents, onStudentsChanged
 
   async function handleDelete(id) {
     if (!isAdmin) {
-      setError('Administrator clearance required: Only Placement Officers can delete candidate records.');
+      setError('Admin permissions required to remove student records.');
       return;
     }
 
-    let token = getAuthToken();
-    if (!token && isAdmin) {
-      await loginUser(SEED_ADMIN.email, 'admin123');
-      token = getAuthToken();
-    }
-
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-
-    if (!window.confirm('Are you sure you want to delete this student record?')) {
+    if (!window.confirm('Are you sure you want to delete this candidate record?')) {
       return;
     }
 
@@ -180,339 +178,356 @@ export default function Students({ students = [], setStudents, onStudentsChanged
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Failed to delete student');
       }
 
-      setStudents((prev) => prev.filter((s) => s._id !== id));
+      setStudents((prev) => prev.filter((s) => (s._id || s.id) !== id));
       if (onStudentsChanged) onStudentsChanged();
     } catch (err) {
       setError(err.message || 'Unable to delete student');
     }
   }
 
-  // Extract unique branches for filter
-  const branchOptions = useMemo(() => {
-    const set = new Set();
-    students.forEach((s) => {
-      if (s.branch) set.add(s.branch.toUpperCase().trim());
-    });
-    return Array.from(set).sort();
-  }, [students]);
-
-  // Filtered Students
+  // Filter students
   const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
-      const matchesSearch =
-        (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.branch || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return students.filter((student) => {
+      const nameMatch = (student.name || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const emailMatch = (student.email || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesSearch = nameMatch || emailMatch;
 
       const matchesBranch =
         branchFilter === 'ALL' ||
-        (s.branch || '').toUpperCase().trim() === branchFilter;
+        (student.branch || '').toUpperCase() === branchFilter.toUpperCase();
 
       const matchesStatus =
-        statusFilter === 'ALL' || s.status === statusFilter;
+        statusFilter === 'ALL' ||
+        (student.status || 'Not Placed').toLowerCase() === statusFilter.toLowerCase();
 
       return matchesSearch && matchesBranch && matchesStatus;
     });
   }, [students, searchTerm, branchFilter, statusFilter]);
 
+  // Export CSV Report
+  function exportStudentsCSV() {
+    if (!students || students.length === 0) return;
+    const headers = ['Name', 'Email', 'Branch', 'Roll Number', 'Status'];
+    const rows = filteredStudents.map((s) => [
+      `"${s.name || ''}"`,
+      `"${s.email || ''}"`,
+      `"${s.branch || ''}"`,
+      `"${s.rollNo || ''}"`,
+      `"${s.status || 'Not Placed'}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Placement_Candidates_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const branches = ['ALL', 'CSE', 'ECE', 'IT', 'MECH', 'CIVIL', 'EEE'];
+  const statuses = ['ALL', 'Placed', 'Interview', 'Applied', 'Not Placed'];
+
   return (
-    <div className="management-page-container">
+    <div className="modern-management-page">
       {/* Page Header */}
-      <div className="management-header-row">
+      <div className="page-header-row">
         <div>
-          <div className="mgmt-badge">CANDIDATE REGISTRY // MODULE 02</div>
-          <h2 className="mgmt-title">STUDENTS MANAGEMENT</h2>
-          <p className="mgmt-subtitle">
-            Manage student academic profiles, career tracking, and placement qualification.
+          <h1 className="page-main-title">Student Directory</h1>
+          <p className="page-sub-title">
+            View eligible candidates, branch allocations, and placement statuses.
           </p>
         </div>
 
-        <div className="mgmt-actions-group">
+        <div className="page-header-actions">
           <button
             type="button"
-            className="btn-steel btn-sm"
+            className="secondary-action-btn"
+            onClick={exportStudentsCSV}
+            title="Download CSV Placement Roster"
+          >
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            type="button"
+            className="secondary-action-btn"
             onClick={fetchStudents}
             disabled={loading}
           >
-            <RefreshCw size={14} className={loading ? 'spin-icon' : ''} />
-            <span>REFRESH</span>
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
           </button>
 
-          {!isStudent ? (
+          {isAdmin ? (
             <button
               type="button"
-              className="btn-rust btn-sm"
-              onClick={() => setShowAddForm(!showAddForm)}
+              className="primary-action-btn"
+              onClick={() => setShowAddModal(true)}
             >
               <UserPlus size={16} />
-              <span>{showAddForm ? 'CLOSE FORM' : '+ ADD STUDENT'}</span>
+              <span>Enroll Candidate</span>
             </button>
           ) : (
-            <div
-              className="mgmt-role-tag mono"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                padding: '7px 12px',
-                background: 'rgba(255, 138, 61, 0.1)',
-                border: '1px solid rgba(255, 138, 61, 0.3)',
-                borderRadius: '3px',
-                color: '#ff8a3d',
-                letterSpacing: '0.06em',
-                fontWeight: 500,
-              }}
-            >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ff8a3d' }} />
-              <span>STUDENT VIEW // READ-ONLY</span>
+            <div className="student-view-pill">
+              <Shield size={14} />
+              <span>Student View (Read-Only)</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="mgmt-alert-error" role="alert">
-          <AlertCircle size={18} />
+        <div className="page-alert-banner">
+          <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Add Student Section */}
-      {!isStudent && showAddForm && (
-        <section className="mgmt-form-card industrial-rivet-card">
-          <div className="form-card-header">
-            <h3 className="form-card-title">ENROLL NEW CANDIDATE</h3>
-            <span className="form-card-code">FORM // STU-NEW</span>
-          </div>
-
-          <form className="student-grid-form" onSubmit={handleSubmit}>
-            <div className="form-field-group">
-              <label htmlFor="student-name">Full Name *</label>
-              <input
-                id="student-name"
-                type="text"
-                name="name"
-                placeholder="e.g. Rahul Sharma"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="student-email">Email Address *</label>
-              <input
-                id="student-email"
-                type="email"
-                name="email"
-                placeholder="e.g. rahul@college.edu"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="student-branch">Department / Branch *</label>
-              <input
-                id="student-branch"
-                type="text"
-                name="branch"
-                placeholder="e.g. CSE, ECE, MECH"
-                value={formData.branch}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="student-status">Placement Status</label>
-              <select
-                id="student-status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <option value="Not Placed">Not Placed</option>
-                <option value="Applied">Applied</option>
-                <option value="Interview">Interview</option>
-                <option value="Placed">Placed</option>
-              </select>
-            </div>
-
-            <div className="form-buttons-row">
-              <button
-                type="button"
-                className="btn-steel btn-sm"
-                onClick={() => setShowAddForm(false)}
-              >
-                CANCEL
-              </button>
-              <button
-                type="submit"
-                className="btn-rust btn-sm"
-                disabled={saving}
-              >
-                {saving ? 'ENROLLING...' : 'ENROLL CANDIDATE'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="mgmt-filter-toolbar industrial-rivet-card">
-        <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
+      {/* Filter & Search Bar */}
+      <div className="filter-controls-card">
+        <div className="search-input-box">
+          <Search size={17} className="search-box-icon" />
           <input
             type="text"
-            placeholder="Search by candidate name, email, or branch..."
+            className="clean-search-field"
+            placeholder="Search by student name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => setSearchTerm('')}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        <div className="filter-selects-row">
-          <div className="filter-item">
-            <span className="filter-label">BRANCH:</span>
+        <div className="filter-dropdowns-row">
+          <div className="select-pill-group">
+            <span className="select-label">Branch:</span>
             <select
+              className="pill-select"
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
-              className="filter-select"
             >
-              <option value="ALL">ALL BRANCHES</option>
-              {branchOptions.map((b) => (
-                <option key={b} value={b}>{b}</option>
+              {branches.map((b) => (
+                <option key={b} value={b}>
+                  {b === 'ALL' ? 'All Branches' : b}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="filter-item">
-            <span className="filter-label">STATUS:</span>
+          <div className="select-pill-group">
+            <span className="select-label">Status:</span>
             <select
+              className="pill-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
             >
-              <option value="ALL">ALL STATUSES</option>
-              <option value="Placed">PLACED</option>
-              <option value="Interview">INTERVIEW</option>
-              <option value="Applied">APPLIED</option>
-              <option value="Not Placed">NOT PLACED</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'ALL' ? 'All Statuses' : s}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
-      {/* Records Table & Counter */}
-      <section className="mgmt-table-section industrial-rivet-card">
-        <div className="table-header-row">
-          <div className="table-count-badge">
-            SHOWING <strong>{filteredStudents.length}</strong> OF <strong>{students.length}</strong> CANDIDATES
-          </div>
+      {/* Student Table / Cards */}
+      <div className="directory-table-card">
+        <div className="directory-table-header">
+          <span className="result-count-label">
+            Showing <strong>{filteredStudents.length}</strong> candidates
+          </span>
         </div>
 
-        {loading ? (
-          <div className="mgmt-loading-state">
-            <RefreshCw size={28} className="spin-icon" />
-            <p>Loading candidate registry from MongoDB Atlas...</p>
-          </div>
-        ) : filteredStudents.length === 0 ? (
-          <div className="mgmt-empty-state">
-            <GraduationCap size={40} className="empty-state-icon" />
-            <h4>NO CANDIDATE RECORDS FOUND</h4>
-            <p>
-              {students.length === 0
-                ? 'No students enrolled yet. Use "+ Add Student" above to create your first candidate.'
-                : 'No candidate records match your current search or filters.'}
-            </p>
-            {!isStudent && students.length === 0 && (
-              <button
-                type="button"
-                className="btn-rust btn-sm"
-                onClick={() => setShowAddForm(true)}
-              >
-                + ADD FIRST STUDENT
-              </button>
-            )}
+        {filteredStudents.length === 0 ? (
+          <div className="empty-results-box">
+            <GraduationCap size={40} className="empty-icon" />
+            <p className="empty-title">No candidates match your criteria</p>
+            <p className="empty-desc">Try clearing filters or search terms.</p>
           </div>
         ) : (
-          <div className="mgmt-table-wrapper">
-            <table className="mgmt-data-table">
+          <div className="table-responsive-wrapper">
+            <table className="clean-data-table">
               <thead>
                 <tr>
-                  <th>CANDIDATE</th>
-                  <th>EMAIL</th>
-                  <th>BRANCH</th>
-                  <th>STATUS</th>
-                  <th>{isStudent ? 'ENROLLMENT' : 'ACTIONS'}</th>
+                  <th>Candidate</th>
+                  <th>Branch</th>
+                  <th>Contact Email</th>
+                  <th>Status</th>
+                  {isAdmin && <th className="text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student) => (
-                  <tr key={student._id || student.id}>
-                    <td>
-                      <div className="candidate-name-cell">
-                        <div className="candidate-avatar">
-                          {(student.name || 'S').charAt(0).toUpperCase()}
+                {filteredStudents.map((student) => {
+                  const statusNormalized = (student.status || 'not-placed').toLowerCase().replace(' ', '-');
+                  const initials = (student.name || 'S')
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase();
+
+                  return (
+                    <tr key={student._id || student.id}>
+                      <td>
+                        <div className="candidate-cell">
+                          <div className="candidate-avatar">{initials}</div>
+                          <div className="candidate-names">
+                            <span className="candidate-full-name">{student.name}</span>
+                            <span className="candidate-roll">
+                              {student.rollNo || `CS-2026-${(student._id || student.id || '').slice(-3)}`}
+                            </span>
+                          </div>
                         </div>
-                        <span className="candidate-name">{student.name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="email-cell">
-                        <Mail size={13} className="cell-icon" />
-                        <span>{student.email}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="branch-pill">{student.branch}</span>
-                    </td>
-                    <td>
-                      <span className={`status-pill ${(student.status || 'not-placed').toLowerCase().replace(/\s+/g, '-')}`}>
-                        {student.status || 'Not Placed'}
-                      </span>
-                    </td>
-                    <td>
-                      {!isStudent ? (
-                        <button
-                          type="button"
-                          className="btn-danger"
-                          onClick={() => handleDelete(student._id)}
-                          title="Delete student"
-                        >
-                          <Trash2 size={13} />
-                          <span>DELETE</span>
-                        </button>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontFamily: 'var(--font-mono)',
-                            color: 'var(--dim-text)',
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          ACTIVE CANDIDATE
+                      </td>
+                      <td>
+                        <span className="branch-tag">{student.branch || 'CSE'}</span>
+                      </td>
+                      <td>
+                        <span className="email-text">{student.email}</span>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${statusNormalized}`}>
+                          {student.status || 'Not Placed'}
                         </span>
+                      </td>
+                      {isAdmin && (
+                        <td className="text-right">
+                          <button
+                            type="button"
+                            className="delete-row-btn"
+                            onClick={() => handleDelete(student._id || student.id)}
+                            title="Remove candidate"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
                       )}
-                    </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-      </section>
+      </div>
+
+      {/* Add Candidate Modal */}
+      {showAddModal && (
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div className="modal-card-header">
+              <div className="modal-title-row">
+                <UserPlus size={18} className="text-indigo" />
+                <h3 className="modal-title">Enroll New Candidate</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="modal-form-body">
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="modal-input"
+                  placeholder="e.g. Yashwanth Reddy"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  className="modal-input"
+                  placeholder="e.g. yashwanth@candidate.edu"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label className="form-label">Branch</label>
+                  <select
+                    name="branch"
+                    className="modal-select"
+                    value={formData.branch}
+                    onChange={handleChange}
+                  >
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="IT">IT</option>
+                    <option value="MECH">MECH</option>
+                    <option value="CIVIL">CIVIL</option>
+                    <option value="EEE">EEE</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Placement Status</label>
+                  <select
+                    name="status"
+                    className="modal-select"
+                    value={formData.status}
+                    onChange={handleChange}
+                  >
+                    <option value="Not Placed">Not Placed</option>
+                    <option value="Applied">Applied</option>
+                    <option value="Interview">Interview</option>
+                    <option value="Placed">Placed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-card-footer">
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-submit-btn"
+                  disabled={saving}
+                >
+                  {saving ? 'Enrolling...' : 'Save Candidate'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -132,6 +132,7 @@ function optionalAuth(req, res, next) {
 module.exports = {
   verifyToken,
   requireAdmin,
+  verifyAdmin: requireAdmin,
   optionalAuth,
   JWT_SECRET,
 };

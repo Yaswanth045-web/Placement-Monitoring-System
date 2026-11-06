@@ -7,14 +7,14 @@ import {
   UserPlus,
   PlusCircle,
   FileCheck2,
-  Clock,
   ArrowRight,
-  Database,
   BarChart3,
-  PieChart as PieIcon,
   RefreshCw,
   CheckCircle2,
-  AlertTriangle
+  Clock,
+  Sparkles,
+  Briefcase,
+  ChevronRight,
 } from 'lucide-react';
 import '../Styles/Dashboard.css';
 
@@ -35,9 +35,8 @@ export default function DashboardView({
   const studentsNotPlaced = students.filter((s) => s.status === 'Not Placed' || !s.status).length;
   const totalCompanies = companies.length;
 
-  const placementRate = totalStudents > 0
-    ? Math.round((studentsPlaced / totalStudents) * 100)
-    : 0;
+  const placementRate =
+    totalStudents > 0 ? Math.round((studentsPlaced / totalStudents) * 100) : 0;
 
   // Branch Breakdown
   const branchMap = {};
@@ -52,451 +51,384 @@ export default function DashboardView({
     }
   });
 
-  const branchList = Object.keys(branchMap).map((branch) => ({
-    branch,
-    total: branchMap[branch].total,
-    placed: branchMap[branch].placed,
-    rate: Math.round((branchMap[branch].placed / branchMap[branch].total) * 100),
-  })).slice(0, 5);
+  const branchList = Object.keys(branchMap)
+    .map((branch) => ({
+      branch,
+      total: branchMap[branch].total,
+      placed: branchMap[branch].placed,
+      rate: Math.round((branchMap[branch].placed / branchMap[branch].total) * 100) || 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
 
-  // Application Pipeline Distribution
-  const totalApps = applications.length;
-  const appsApplied = applications.filter((a) => a.status === 'Applied').length;
-  const appsInterview = applications.filter((a) => a.status === 'Interview').length;
-  const appsSelected = applications.filter((a) => a.status === 'Selected').length;
-  const appsRejected = applications.filter((a) => a.status === 'Rejected').length;
-
-  // Donut Chart calculations for Student Placement Status
-  const donutData = [
-    { label: 'Placed', count: studentsPlaced, color: '#4ade80' },
-    { label: 'Interview', count: studentsInterview, color: '#fde047' },
-    { label: 'Applied', count: studentsApplied, color: '#93c5fd' },
-    { label: 'Not Placed', count: studentsNotPlaced, color: '#71768c' },
+  // Status breakdown slices
+  const statusItems = [
+    { label: 'Placed', count: studentsPlaced, color: '#10b981', bg: '#ecfdf5', dot: '#10b981' },
+    { label: 'Interviewing', count: studentsInterview, color: '#f59e0b', bg: '#fffbeb', dot: '#f59e0b' },
+    { label: 'Applied', count: studentsApplied, color: '#3b82f6', bg: '#eff6ff', dot: '#3b82f6' },
+    { label: 'Not Placed', count: studentsNotPlaced, color: '#94a3b8', bg: '#f1f5f9', dot: '#94a3b8' },
   ];
 
-  // Compute SVG circle segments
-  const circumference = 2 * Math.PI * 40; // r=40 -> ~251.3
+  // Circumference for clean SVG donut
+  const circumference = 2 * Math.PI * 40;
   let currentOffset = 0;
-  const donutSegments = donutData.map((slice) => {
-    const percent = totalStudents > 0 ? slice.count / totalStudents : 0;
+  const donutSegments = statusItems.map((item) => {
+    const percent = totalStudents > 0 ? item.count / totalStudents : 0;
     const strokeDash = percent * circumference;
     const dashArray = `${strokeDash} ${circumference - strokeDash}`;
     const dashOffset = -currentOffset;
     currentOffset += strokeDash;
-    return { ...slice, dashArray, dashOffset, percent: Math.round(percent * 100) };
+    return { ...item, dashArray, dashOffset, percent: Math.round(percent * 100) };
   });
 
+  // Recent applications list
+  const recentApps = [...applications].slice(-5).reverse();
+
   return (
-    <div className="dashboard-container">
-      {/* Top Industrial Header & Summary */}
-      <header className="dashboard-header-bar">
-        <div>
-          <div className="dashboard-badge-row">
-            <span className="live-dot" />
-            <span className="live-code">CAMPUS PLACEMENT CONTROL ROOM // LIVE API</span>
+    <div className="modern-dashboard">
+      {/* Top Header Banner */}
+      <div className="dashboard-hero-header">
+        <div className="hero-text-col">
+          <div className="hero-pill-badge">
+            <Sparkles size={13} className="hero-pill-icon" />
+            <span>Campus Placement Intelligence</span>
           </div>
-          <h2 className="dashboard-title">OPERATIONS DASHBOARD</h2>
-          <p className="dashboard-subtitle">
-            Real-time analytics, recruitment statistics, and student career pipelines.
+          <h1 className="dashboard-main-heading">Placement Operations Dashboard</h1>
+          <p className="dashboard-subheading">
+            Live recruitment analytics, candidate progress tracking, and partner corporate drives.
           </p>
         </div>
 
-        <div className="dashboard-header-actions">
+        <div className="hero-actions-col">
           <button
             type="button"
-            className="btn-steel btn-sm"
+            className="refresh-data-btn"
             onClick={onRefresh}
             disabled={loading}
-            title="Refresh database records"
           >
-            <RefreshCw size={15} className={loading ? 'spin-icon' : ''} />
-            <span>SYNC DATA</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn-rust btn-sm"
-            onClick={() => onNavigate('Applications')}
-          >
-            <PlusCircle size={15} />
-            <span>NEW APPLICATION</span>
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>{loading ? 'Syncing...' : 'Refresh Live Data'}</span>
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Error Notice */}
       {error && (
-        <div className="dashboard-alert-banner" role="alert">
-          <AlertTriangle size={20} />
+        <div className="dashboard-alert-banner">
           <span>{error}</span>
-          <button type="button" onClick={onRefresh} className="alert-retry-btn">
-            Retry Connection
-          </button>
         </div>
       )}
 
-      {/* 4 Rounded Statistic Cards */}
-      <section className="stats-cards-grid" aria-label="Placement Metrics">
+      {/* KPI Stats Grid */}
+      <div className="kpi-metric-grid">
         {/* Card 1: Total Students */}
-        <div className="stat-metric-card industrial-rivet-card">
-          <div className="card-top-row">
-            <span className="card-kpi-label">TOTAL STUDENTS</span>
-            <div className="card-icon-wrapper">
-              <Users size={20} />
+        <div className="kpi-stat-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Registered Students</span>
+            <div className="kpi-icon-wrap bg-indigo-subtle">
+              <Users size={18} className="text-indigo" />
             </div>
           </div>
-          <div className="card-value-row">
-            <strong className="card-number">{loading ? '...' : totalStudents}</strong>
-            <span className="card-trend-tag">CANDIDATES</span>
+          <div className="kpi-card-body">
+            <span className="kpi-value">{totalStudents}</span>
+            <span className="kpi-subtext">Active 2026 Batch</span>
           </div>
-          <div className="card-bottom-bar">
-            <span className="card-meta-text">Active placement registry</span>
+          <div className="kpi-card-footer">
+            <button
+              type="button"
+              className="kpi-link-btn"
+              onClick={() => onNavigate && onNavigate('Students')}
+            >
+              <span>View Directory</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
 
-        {/* Card 2: Students Placed */}
-        <div className="stat-metric-card industrial-rivet-card card-placed-highlight">
-          <div className="card-top-row">
-            <span className="card-kpi-label">STUDENTS PLACED</span>
-            <div className="card-icon-wrapper placed-icon">
-              <Award size={20} />
+        {/* Card 2: Placed Students */}
+        <div className="kpi-stat-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Placed Candidates</span>
+            <div className="kpi-icon-wrap bg-emerald-subtle">
+              <Award size={18} className="text-emerald" />
             </div>
           </div>
-          <div className="card-value-row">
-            <strong className="card-number placed-number">{loading ? '...' : studentsPlaced}</strong>
-            <span className="card-trend-tag tag-success">CONFIRMED</span>
+          <div className="kpi-card-body">
+            <span className="kpi-value">{studentsPlaced}</span>
+            <span className="kpi-subtext text-emerald-bold">
+              {placementRate}% Conversion
+            </span>
           </div>
-          <div className="card-bottom-bar">
-            <div className="stat-mini-progress">
+          <div className="kpi-card-footer">
+            <div className="kpi-mini-progress">
               <div
-                className="progress-fill placed-fill"
-                style={{ width: `${placementRate}%` }}
+                className="mini-progress-fill bg-emerald"
+                style={{ width: `${Math.min(100, placementRate)}%` }}
               />
             </div>
-            <span className="card-meta-text">{placementRate}% of total batch placed</span>
           </div>
         </div>
 
-        {/* Card 3: Registered Companies */}
-        <div className="stat-metric-card industrial-rivet-card">
-          <div className="card-top-row">
-            <span className="card-kpi-label">REGISTERED COMPANIES</span>
-            <div className="card-icon-wrapper">
-              <Building2 size={20} />
+        {/* Card 3: Partner Companies */}
+        <div className="kpi-stat-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Partner Recruiters</span>
+            <div className="kpi-icon-wrap bg-sky-subtle">
+              <Building2 size={18} className="text-sky" />
             </div>
           </div>
-          <div className="card-value-row">
-            <strong className="card-number">{loading ? '...' : totalCompanies}</strong>
-            <span className="card-trend-tag">PARTNERS</span>
+          <div className="kpi-card-body">
+            <span className="kpi-value">{totalCompanies}</span>
+            <span className="kpi-subtext">Active Hiring Partners</span>
           </div>
-          <div className="card-bottom-bar">
-            <span className="card-meta-text">Tier-1 & tech recruiters</span>
+          <div className="kpi-card-footer">
+            <button
+              type="button"
+              className="kpi-link-btn"
+              onClick={() => onNavigate && onNavigate('Companies')}
+            >
+              <span>View Recruiters</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
 
-        {/* Card 4: Placement Rate */}
-        <div className="stat-metric-card industrial-rivet-card card-rate-highlight">
-          <div className="card-top-row">
-            <span className="card-kpi-label">PLACEMENT RATE</span>
-            <div className="card-icon-wrapper rate-icon">
-              <TrendingUp size={20} />
+        {/* Card 4: Applications Pipeline */}
+        <div className="kpi-stat-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Total Applications</span>
+            <div className="kpi-icon-wrap bg-amber-subtle">
+              <Briefcase size={18} className="text-amber" />
             </div>
           </div>
-          <div className="card-value-row">
-            <strong className="card-number rate-number">{loading ? '...' : `${placementRate}%`}</strong>
-            <span className="card-trend-tag tag-orange">CAMPUS RATIO</span>
+          <div className="kpi-card-body">
+            <span className="kpi-value">{applications.length}</span>
+            <span className="kpi-subtext">Active Pipeline Submissions</span>
           </div>
-          <div className="card-bottom-bar">
-            <div className="stat-mini-progress">
-              <div
-                className="progress-fill rate-fill"
-                style={{ width: `${placementRate}%` }}
-              />
-            </div>
-            <span className="card-meta-text">Target: 100% student placement</span>
+          <div className="kpi-card-footer">
+            <button
+              type="button"
+              className="kpi-link-btn"
+              onClick={() => onNavigate && onNavigate('Applications')}
+            >
+              <span>View Tracker</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Analytics & Pipeline Grid */}
-      <section className="dashboard-analytics-grid">
-        {/* Left Chart: Placement Distribution Donut Chart */}
-        <div className="analytics-card industrial-rivet-card">
-          <div className="card-section-header">
+      {/* Middle Grid: Branch Analysis & Donut Chart */}
+      <div className="dashboard-charts-grid">
+        {/* Branch-wise Performance */}
+        <div className="dashboard-card branch-performance-card">
+          <div className="card-heading-bar">
             <div>
-              <h3 className="section-title">STUDENT PLACEMENT STATUS</h3>
-              <p className="section-desc">Distribution across current recruitment stages</p>
+              <h2 className="card-title">Placement by Engineering Branch</h2>
+              <p className="card-subtitle">
+                Placement distribution across primary academic departments.
+              </p>
             </div>
-            <PieIcon size={18} className="header-icon-muted" />
           </div>
 
-          <div className="donut-chart-layout">
-            <div className="svg-donut-wrapper">
-              <svg viewBox="0 0 100 100" className="donut-svg">
-                {/* Background Track */}
+          <div className="branch-list-wrapper">
+            {branchList.length === 0 ? (
+              <p className="empty-state-text">No student branch data available.</p>
+            ) : (
+              branchList.map((item) => (
+                <div key={item.branch} className="branch-metric-row">
+                  <div className="branch-row-top">
+                    <span className="branch-name-label">{item.branch}</span>
+                    <span className="branch-stats-text">
+                      <strong>{item.placed}</strong> / {item.total} Placed ({item.rate}%)
+                    </span>
+                  </div>
+                  <div className="branch-progress-track">
+                    <div
+                      className="branch-progress-bar"
+                      style={{ width: `${Math.min(100, Math.max(6, item.rate))}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Donut Chart: Placement Status */}
+        <div className="dashboard-card status-donut-card">
+          <div className="card-heading-bar">
+            <div>
+              <h2 className="card-title">Placement Status Breakdown</h2>
+              <p className="card-subtitle">Current status distribution of all candidates.</p>
+            </div>
+          </div>
+
+          <div className="donut-content-layout">
+            <div className="donut-svg-wrapper">
+              <svg width="120" height="120" viewBox="0 0 100 100" className="donut-svg">
                 <circle
                   cx="50"
                   cy="50"
                   r="40"
                   fill="transparent"
-                  stroke="rgba(47, 50, 64, 0.5)"
+                  stroke="#f1f5f9"
                   strokeWidth="12"
                 />
-                {/* Colored Segments */}
-                {donutSegments.map((seg, idx) => (
+                {donutSegments.map((segment) => (
                   <circle
-                    key={seg.label}
+                    key={segment.label}
                     cx="50"
                     cy="50"
                     r="40"
                     fill="transparent"
-                    stroke={seg.color}
+                    stroke={segment.color}
                     strokeWidth="12"
-                    strokeDasharray={seg.dashArray}
-                    strokeDashoffset={seg.dashOffset}
-                    transform="rotate(-90 50 50)"
-                    strokeLinecap="round"
-                    className="donut-segment"
+                    strokeDasharray={segment.dashArray}
+                    strokeDashoffset={segment.dashOffset}
+                    style={{ transition: 'stroke-dasharray 0.5s ease' }}
                   />
                 ))}
               </svg>
-              <div className="donut-center-info">
-                <span className="donut-center-val">{totalStudents}</span>
-                <span className="donut-center-lbl">TOTAL</span>
+              <div className="donut-center-label">
+                <span className="center-percentage">{placementRate}%</span>
+                <span className="center-text">Placed</span>
               </div>
             </div>
 
-            {/* Donut Legend */}
             <div className="donut-legend-list">
-              {donutData.map((item) => (
-                <div key={item.label} className="legend-row">
-                  <div className="legend-indicator">
-                    <span className="legend-dot" style={{ backgroundColor: item.color }} />
-                    <span className="legend-name">{item.label}</span>
-                  </div>
-                  <div className="legend-data">
-                    <strong className="legend-count">{item.count}</strong>
-                    <span className="legend-pct">
-                      ({totalStudents > 0 ? Math.round((item.count / totalStudents) * 100) : 0}%)
-                    </span>
-                  </div>
+              {statusItems.map((item) => (
+                <div key={item.label} className="legend-row-item">
+                  <span className="legend-color-dot" style={{ backgroundColor: item.dot }} />
+                  <span className="legend-name">{item.label}</span>
+                  <span className="legend-count">{item.count}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Chart: Application Funnel Pipeline */}
-        <div className="analytics-card industrial-rivet-card">
-          <div className="card-section-header">
+      {/* Quick Launchpad & Recent Activity */}
+      <div className="dashboard-bottom-grid">
+        {/* Quick Actions */}
+        <div className="dashboard-card quick-actions-card">
+          <div className="card-heading-bar">
             <div>
-              <h3 className="section-title">APPLICATION PIPELINE</h3>
-              <p className="section-desc">Conversion funnel across interview stages</p>
-            </div>
-            <BarChart3 size={18} className="header-icon-muted" />
-          </div>
-
-          <div className="pipeline-funnel-list">
-            <div className="funnel-stage-item">
-              <div className="stage-top-meta">
-                <span className="stage-name">1. APPLIED</span>
-                <span className="stage-numbers">{appsApplied} Applications</span>
-              </div>
-              <div className="stage-track">
-                <div
-                  className="stage-bar bar-applied"
-                  style={{ width: `${totalApps > 0 ? (appsApplied / totalApps) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="funnel-stage-item">
-              <div className="stage-top-meta">
-                <span className="stage-name">2. INTERVIEW ROUNDS</span>
-                <span className="stage-numbers">{appsInterview} Applications</span>
-              </div>
-              <div className="stage-track">
-                <div
-                  className="stage-bar bar-interview"
-                  style={{ width: `${totalApps > 0 ? (appsInterview / totalApps) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="funnel-stage-item">
-              <div className="stage-top-meta">
-                <span className="stage-name">3. SELECTED / OFFERS</span>
-                <span className="stage-numbers">{appsSelected} Selected</span>
-              </div>
-              <div className="stage-track">
-                <div
-                  className="stage-bar bar-selected"
-                  style={{ width: `${totalApps > 0 ? (appsSelected / totalApps) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="funnel-stage-item">
-              <div className="stage-top-meta">
-                <span className="stage-name">4. REJECTED</span>
-                <span className="stage-numbers">{appsRejected} Applications</span>
-              </div>
-              <div className="stage-track">
-                <div
-                  className="stage-bar bar-rejected"
-                  style={{ width: `${totalApps > 0 ? (appsRejected / totalApps) * 100 : 0}%` }}
-                />
-              </div>
+              <h2 className="card-title">Placement Quick Actions</h2>
+              <p className="card-subtitle">Frequent administrative operations.</p>
             </div>
           </div>
 
-          {totalApps === 0 && (
-            <p className="empty-subtext">No applications tracked yet. Create one via Applications.</p>
-          )}
-        </div>
-      </section>
-
-      {/* Branch Placement Ratios */}
-      {branchList.length > 0 && (
-        <section className="branch-overview-section industrial-rivet-card">
-          <div className="card-section-header">
-            <div>
-              <h3 className="section-title">BRANCH PLACEMENT BREAKDOWN</h3>
-              <p className="section-desc">Performance comparison by academic department</p>
-            </div>
-          </div>
-
-          <div className="branch-cards-row">
-            {branchList.map((b) => (
-              <div key={b.branch} className="branch-card">
-                <div className="branch-code-row">
-                  <span className="branch-name">{b.branch}</span>
-                  <span className="branch-rate">{b.rate}%</span>
-                </div>
-                <div className="branch-progress-bar">
-                  <div
-                    className="branch-progress-fill"
-                    style={{ width: `${b.rate}%` }}
-                  />
-                </div>
-                <div className="branch-counts">
-                  <span>{b.placed} placed</span>
-                  <span>/ {b.total} candidates</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recent Placement Activity Feed */}
-      <section className="recent-activity-section industrial-rivet-card">
-        <div className="card-section-header">
-          <div>
-            <h3 className="section-title">RECENT PLACEMENT ACTIVITY</h3>
-            <p className="section-desc">Live log of candidate applications and recruiter milestones</p>
-          </div>
-          <button
-            type="button"
-            className="view-all-link-btn"
-            onClick={() => onNavigate('Applications')}
-          >
-            <span>VIEW ALL</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
-
-        {applications.length === 0 ? (
-          <div className="empty-activity-box">
-            <Clock size={36} className="empty-icon" />
-            <h4 className="empty-title">NO RECENT ACTIVITY</h4>
-            <p className="empty-text">
-              No application activity recorded in this session yet. Create applications to monitor live recruitment pipelines.
-            </p>
+          <div className="quick-actions-btns">
             <button
               type="button"
-              className="btn-rust btn-sm"
-              onClick={() => onNavigate('Applications')}
+              className="action-tile-btn"
+              onClick={() => onNavigate && onNavigate('Students')}
             >
-              <PlusCircle size={15} />
-              <span>CREATE FIRST APPLICATION</span>
+              <div className="action-tile-icon bg-indigo-subtle">
+                <UserPlus size={18} className="text-indigo" />
+              </div>
+              <div className="action-tile-text">
+                <span className="tile-title">Enroll Student</span>
+                <span className="tile-desc">Add candidate profile</span>
+              </div>
+              <ChevronRight size={16} className="tile-arrow" />
+            </button>
+
+            <button
+              type="button"
+              className="action-tile-btn"
+              onClick={() => onNavigate && onNavigate('Companies')}
+            >
+              <div className="action-tile-icon bg-sky-subtle">
+                <PlusCircle size={18} className="text-sky" />
+              </div>
+              <div className="action-tile-text">
+                <span className="tile-title">Register Recruiter</span>
+                <span className="tile-desc">Add partner company</span>
+              </div>
+              <ChevronRight size={16} className="tile-arrow" />
+            </button>
+
+            <button
+              type="button"
+              className="action-tile-btn"
+              onClick={() => onNavigate && onNavigate('Drives')}
+            >
+              <div className="action-tile-icon bg-amber-subtle">
+                <Briefcase size={18} className="text-amber" />
+              </div>
+              <div className="action-tile-text">
+                <span className="tile-title">Recruitment Drives</span>
+                <span className="tile-desc">View schedules & apply</span>
+              </div>
+              <ChevronRight size={16} className="tile-arrow" />
+            </button>
+
+            <button
+              type="button"
+              className="action-tile-btn"
+              onClick={() => onNavigate && onNavigate('Applications')}
+            >
+              <div className="action-tile-icon bg-emerald-subtle">
+                <FileCheck2 size={18} className="text-emerald" />
+              </div>
+              <div className="action-tile-text">
+                <span className="tile-title">Manage Applications</span>
+                <span className="tile-desc">Update interview outcomes</span>
+              </div>
+              <ChevronRight size={16} className="tile-arrow" />
             </button>
           </div>
-        ) : (
-          <div className="activity-records-table-wrapper">
-            <table className="activity-records-table">
-              <thead>
-                <tr>
-                  <th>CANDIDATE</th>
-                  <th>RECRUITER / COMPANY</th>
-                  <th>ROLE</th>
-                  <th>DATE</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.slice(0, 5).map((app) => (
-                  <tr key={app._id || app.id}>
-                    <td>
-                      <div className="student-cell-lockup">
-                        <div className="avatar-chip">
-                          {(app.studentName || 'S').charAt(0).toUpperCase()}
-                        </div>
-                        <span className="student-name-text">{app.studentName}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="company-text">{app.companyName}</span>
-                    </td>
-                    <td>
-                      <span className="role-text">{app.role}</span>
-                    </td>
-                    <td>
-                      <span className="date-text">
-                        {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Active'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status-pill ${app.status?.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {app.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        </div>
+
+        {/* Recent Applications Feed */}
+        <div className="dashboard-card recent-apps-card">
+          <div className="card-heading-bar">
+            <div>
+              <h2 className="card-title">Recent Application Pipeline</h2>
+              <p className="card-subtitle">Latest student drive submissions.</p>
+            </div>
+            {onNavigate && (
+              <button
+                type="button"
+                className="view-all-link"
+                onClick={() => onNavigate('Applications')}
+              >
+                <span>View All</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
           </div>
-        )}
-      </section>
 
-      {/* Quick Action Dock */}
-      <div className="dashboard-action-dock">
-        <button
-          type="button"
-          className="dock-action-btn"
-          onClick={() => onNavigate('Students')}
-        >
-          <UserPlus size={18} />
-          <span>MANAGE STUDENTS</span>
-        </button>
-
-        <button
-          type="button"
-          className="dock-action-btn"
-          onClick={() => onNavigate('Companies')}
-        >
-          <Building2 size={18} />
-          <span>PARTNER COMPANIES</span>
-        </button>
-
-        <button
-          type="button"
-          className="dock-action-btn"
-          onClick={() => onNavigate('Applications')}
-        >
-          <FileCheck2 size={18} />
-          <span>APPLICATION PIPELINE</span>
-        </button>
+          <div className="recent-apps-list">
+            {recentApps.length === 0 ? (
+              <p className="empty-state-text">No applications submitted yet.</p>
+            ) : (
+              recentApps.map((app) => {
+                const statusLower = (app.status || 'applied').toLowerCase();
+                return (
+                  <div key={app._id || app.id} className="app-feed-item">
+                    <div className="app-feed-avatar">
+                      {(app.studentName || 'S')[0].toUpperCase()}
+                    </div>
+                    <div className="app-feed-info">
+                      <span className="app-student-name">{app.studentName}</span>
+                      <span className="app-company-role">
+                        {app.role || 'Software Engineer'} • {app.companyName}
+                      </span>
+                    </div>
+                    <div className="app-feed-status">
+                      <span className={`status-badge ${statusLower}`}>
+                        {app.status || 'Applied'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

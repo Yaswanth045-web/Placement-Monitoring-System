@@ -1,5 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { FileText, Plus, Search, Trash2, Calendar, Building, User, Briefcase, RefreshCw, AlertCircle, ArrowUpRight } from 'lucide-react';
+import {
+  FileText,
+  Plus,
+  Search,
+  Trash2,
+  Calendar,
+  Building,
+  User,
+  Briefcase,
+  RefreshCw,
+  AlertCircle,
+  X,
+  Shield,
+  CheckCircle2,
+  ChevronDown,
+  Download,
+} from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
 import { getAuthHeaders, getAuthToken, loginUser, SEED_ADMIN } from '../utils/authService';
 import '../Styles/Applications.css';
@@ -16,7 +32,6 @@ export default function Applications({
   onOpenAuth,
 }) {
   const isAdmin = currentUser?.role === 'admin';
-  const isStudent = !isAdmin;
   const [formData, setFormData] = useState({
     studentId: '',
     companyId: '',
@@ -28,7 +43,7 @@ export default function Applications({
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   async function fetchApplications() {
     try {
@@ -101,12 +116,15 @@ export default function Applications({
       }
 
       setApplications((prev) => [result.data, ...prev]);
+      if (onApplicationStatusChange) {
+        onApplicationStatusChange(result.data._id, 'Applied');
+      }
       setFormData({
         studentId: '',
         companyId: '',
         role: '',
       });
-      setShowAddForm(false);
+      setShowAddModal(false);
     } catch (err) {
       setError(err.message || 'Unable to save application');
     } finally {
@@ -118,7 +136,7 @@ export default function Applications({
     setError('');
 
     if (!isAdmin) {
-      setError('Administrator clearance required: Only Placement Officers can update application statuses.');
+      setError('Admin access required to update application outcomes.');
       return;
     }
 
@@ -128,22 +146,28 @@ export default function Applications({
       token = getAuthToken();
     }
 
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-
     const previousApplications = applications;
 
-    // Optimistic UI update
-    setApplications((prev) =>
-      prev.map((app) =>
-        String(app._id || app.id) === String(applicationId)
-          ? { ...app, status: newStatus }
-          : app
-      )
-    );
+    // Optimistic UI update:
+    // If selected, remove the candidate application from the tracker immediately!
+    if (newStatus === 'Selected') {
+      setApplications((prev) =>
+        prev.filter((app) => String(app._id || app.id) !== String(applicationId))
+      );
+    } else {
+      setApplications((prev) =>
+        prev.map((app) =>
+          String(app._id || app.id) === String(applicationId)
+            ? { ...app, status: newStatus }
+            : app
+        )
+      );
+    }
+
+    // Immediately notify App to sync Student Directory with 0ms delay
+    if (onApplicationStatusChange) {
+      onApplicationStatusChange(applicationId, newStatus);
+    }
 
     try {
       let response = await fetch(`${API_URL}/${applicationId}`, {
@@ -164,21 +188,23 @@ export default function Applications({
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Failed to update status');
       }
 
-      setApplications((prev) =>
-        prev.map((app) =>
-          String(app._id || app.id) === String(applicationId)
-            ? result.data
-            : app
-        )
-      );
+      if (newStatus === 'Selected' || result.removedFromTracker) {
+        setApplications((prev) =>
+          prev.filter((app) => String(app._id || app.id) !== String(applicationId))
+        );
+      } else {
+        setApplications((prev) =>
+          prev.map((app) =>
+            String(app._id || app.id) === String(applicationId)
+              ? result.data
+              : app
+          )
+        );
+      }
 
-      // Student placement synchronization
       if (onApplicationStatusChange) {
         onApplicationStatusChange(applicationId, newStatus);
       }
@@ -190,23 +216,11 @@ export default function Applications({
 
   async function handleDelete(applicationId) {
     if (!isAdmin) {
-      setError('Administrator clearance required: Only Placement Officers can delete recruitment applications.');
+      setError('Admin permissions required to remove applications.');
       return;
     }
 
-    let token = getAuthToken();
-    if (!token && isAdmin) {
-      await loginUser(SEED_ADMIN.email, 'admin123');
-      token = getAuthToken();
-    }
-
-    if (!token) {
-      setError('Authentication token missing: Please sign in as an Administrator (admin@yaswanth.edu / admin123).');
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-
-    if (!window.confirm('Delete this application record from the recruitment pipeline?')) {
+    if (!window.confirm('Delete this application entry?')) {
       return;
     }
 
@@ -228,278 +242,219 @@ export default function Applications({
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 || (result.message && (result.message.includes('token') || result.message.includes('clearance')))) {
-          throw new Error('Authentication required: Administrator clearance expired or missing. Please sign in as Administrator (admin@yaswanth.edu / admin123).');
-        }
         throw new Error(result.message || 'Failed to delete application');
       }
 
       setApplications((prev) =>
         prev.filter((app) => String(app._id || app.id) !== String(applicationId))
       );
+
+      if (onApplicationStatusChange) {
+        onApplicationStatusChange(applicationId, 'Deleted');
+      }
     } catch (err) {
       setError(err.message || 'Unable to delete application');
     }
   }
 
-  // Filtered applications
-  const filteredApplications = useMemo(() => {
+  // Filter applications
+  const filteredApps = useMemo(() => {
     return applications.filter((app) => {
-      const matchesSearch =
+      const matchSearch =
         (app.studentName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (app.companyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (app.role || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === 'ALL' || app.status === statusFilter;
+      const matchStatus =
+        statusFilter === 'ALL' ||
+        (app.status || 'Applied').toLowerCase() === statusFilter.toLowerCase();
 
-      return matchesSearch && matchesStatus;
+      return matchSearch && matchStatus;
     });
   }, [applications, searchTerm, statusFilter]);
 
+  // Export Applications Report CSV
+  function exportApplicationsCSV() {
+    if (!applications || applications.length === 0) return;
+    const headers = ['Candidate Name', 'Company Name', 'Job Role', 'Status'];
+    const rows = filteredApps.map((a) => [
+      `"${a.studentName || ''}"`,
+      `"${a.companyName || ''}"`,
+      `"${a.role || ''}"`,
+      `"${a.status || 'Applied'}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Placement_Applications_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const statuses = ['ALL', 'Applied', 'Interview', 'Selected', 'Rejected'];
+
   return (
-    <div className="management-page-container">
+    <div className="modern-management-page">
       {/* Header */}
-      <div className="management-header-row">
+      <div className="page-header-row">
         <div>
-          <div className="mgmt-badge">RECRUITMENT PIPELINE // MODULE 04</div>
-          <h2 className="mgmt-title">APPLICATIONS MANAGEMENT</h2>
-          <p className="mgmt-subtitle">
-            Track student application submissions, interview rounds, and selection offers.
+          <h1 className="page-main-title">Application Tracker</h1>
+          <p className="page-sub-title">
+            Monitor candidate submissions, interview shortlists, and placement offers.
           </p>
         </div>
 
-        <div className="mgmt-actions-group">
+        <div className="page-header-actions">
           <button
             type="button"
-            className="btn-steel btn-sm"
-            onClick={fetchApplications}
-            disabled={loading}
+            className="secondary-action-btn"
+            onClick={exportApplicationsCSV}
+            title="Download Applications CSV"
           >
-            <RefreshCw size={14} className={loading ? 'spin-icon' : ''} />
-            <span>REFRESH</span>
+            <Download size={15} />
+            <span>Export CSV</span>
           </button>
 
           <button
             type="button"
-            className="btn-rust btn-sm"
-            onClick={() => setShowAddForm(!showAddForm)}
+            className="secondary-action-btn"
+            onClick={fetchApplications}
+            disabled={loading}
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            type="button"
+            className="primary-action-btn"
+            onClick={() => setShowAddModal(true)}
           >
             <Plus size={16} />
-            <span>
-              {showAddForm
-                ? 'CLOSE FORM'
-                : isStudent
-                ? '+ APPLY TO DRIVE'
-                : '+ NEW APPLICATION'}
-            </span>
+            <span>Submit Application</span>
           </button>
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="mgmt-alert-error" role="alert">
-          <AlertCircle size={18} />
+        <div className="page-alert-banner">
+          <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Add Application Form */}
-      {showAddForm && (
-        <section className="mgmt-form-card industrial-rivet-card">
-          <div className="form-card-header">
-            <h3 className="form-card-title">SUBMIT NEW CANDIDATE APPLICATION</h3>
-            <span className="form-card-code">FORM // APP-PIPELINE</span>
-          </div>
-
-          <form className="student-grid-form" onSubmit={handleSubmit}>
-            <div className="form-field-group">
-              <label htmlFor="app-student-select">Select Candidate *</label>
-              <select
-                id="app-student-select"
-                name="studentId"
-                value={formData.studentId}
-                onChange={handleChange}
-                required
-              >
-                <option value="">-- Choose Candidate --</option>
-                {students.map((student) => (
-                  <option
-                    key={student._id || student.id}
-                    value={student._id || student.id}
-                  >
-                    {student.name} ({student.branch || 'General'} • {student.email})
-                  </option>
-                ))}
-              </select>
-              {students.length === 0 && (
-                <span className="field-hint-warn">No students registered. Please add a student first.</span>
-              )}
-            </div>
-
-            <div className="form-field-group">
-              <label htmlFor="app-company-select">Target Company *</label>
-              <select
-                id="app-company-select"
-                name="companyId"
-                value={formData.companyId}
-                onChange={handleChange}
-                required
-              >
-                <option value="">-- Choose Recruiter --</option>
-                {companies.map((company) => (
-                  <option
-                    key={company._id || company.id}
-                    value={company._id || company.id}
-                  >
-                    {company.name} ({company.industry || 'Tech'})
-                  </option>
-                ))}
-              </select>
-              {companies.length === 0 && (
-                <span className="field-hint-warn">No companies registered. Please add a company first.</span>
-              )}
-            </div>
-
-            <div className="form-field-group" style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="app-role-input">Job Role / Designation *</label>
-              <input
-                id="app-role-input"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                placeholder="e.g. Full Stack Developer, Systems Engineer, Analyst"
-                required
-              />
-            </div>
-
-            <div className="form-buttons-row">
-              <button
-                type="button"
-                className="btn-steel btn-sm"
-                onClick={() => setShowAddForm(false)}
-              >
-                CANCEL
-              </button>
-              <button
-                type="submit"
-                className="btn-rust btn-sm"
-                disabled={saving || students.length === 0 || companies.length === 0}
-              >
-                {saving ? 'SUBMITTING...' : 'SUBMIT APPLICATION'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="mgmt-filter-toolbar industrial-rivet-card">
-        <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
+      {/* Filter bar */}
+      <div className="filter-controls-card">
+        <div className="search-input-box">
+          <Search size={17} className="search-box-icon" />
           <input
             type="text"
-            placeholder="Search by student, company, or job role..."
+            className="clean-search-field"
+            placeholder="Search by candidate name, company, or role..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => setSearchTerm('')}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        <div className="filter-selects-row">
-          <div className="filter-item">
-            <span className="filter-label">STATUS:</span>
+        <div className="filter-dropdowns-row">
+          <div className="select-pill-group">
+            <span className="select-label">Status:</span>
             <select
+              className="pill-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
             >
-              <option value="ALL">ALL STATUSES</option>
-              <option value="Applied">APPLIED</option>
-              <option value="Interview">INTERVIEW</option>
-              <option value="Selected">SELECTED</option>
-              <option value="Rejected">REJECTED</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'ALL' ? 'All Statuses' : s}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
       {/* Applications Table */}
-      <section className="mgmt-table-section industrial-rivet-card">
-        <div className="table-header-row">
-          <div className="table-count-badge">
-            SHOWING <strong>{filteredApplications.length}</strong> OF <strong>{applications.length}</strong> PIPELINE APPLICATIONS
-          </div>
+      <div className="directory-table-card">
+        <div className="directory-table-header">
+          <span className="result-count-label">
+            Showing <strong>{filteredApps.length}</strong> applications
+          </span>
         </div>
 
-        {loading ? (
-          <div className="mgmt-loading-state">
-            <RefreshCw size={28} className="spin-icon" />
-            <p>Loading application pipeline records from MongoDB Atlas...</p>
-          </div>
-        ) : filteredApplications.length === 0 ? (
-          <div className="mgmt-empty-state">
-            <FileText size={40} className="empty-state-icon" />
-            <h4>NO APPLICATIONS LOGGED</h4>
-            <p>
-              {applications.length === 0
-                ? 'No placement applications recorded yet. Click "+ New Application" above to begin tracking candidate interviews.'
-                : 'No application records match your current search query.'}
-            </p>
-            {applications.length === 0 && (
-              <button
-                type="button"
-                className="btn-rust btn-sm"
-                onClick={() => setShowAddForm(true)}
-              >
-                + CREATE FIRST APPLICATION
-              </button>
-            )}
+        {filteredApps.length === 0 ? (
+          <div className="empty-results-box">
+            <FileText size={40} className="empty-icon" />
+            <p className="empty-title">No applications found</p>
+            <p className="empty-desc">Submit a new application or clear search filters.</p>
           </div>
         ) : (
-          <div className="mgmt-table-wrapper">
-            <table className="mgmt-data-table">
+          <div className="table-responsive-wrapper">
+            <table className="clean-data-table">
               <thead>
                 <tr>
-                  <th>CANDIDATE</th>
-                  <th>RECRUITER</th>
-                  <th>JOB ROLE</th>
-                  <th>APPLIED DATE</th>
-                  <th>STAGE STATUS</th>
-                  <th>ACTIONS</th>
+                  <th>Candidate</th>
+                  <th>Company & Position</th>
+                  <th>Date</th>
+                  <th>Outcome Status</th>
+                  {isAdmin && <th className="text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredApplications.map((app) => {
-                  const appId = app._id || app.id;
+                {filteredApps.map((app) => {
+                  const statusLower = (app.status || 'applied').toLowerCase();
+                  const initials = (app.studentName || 'S')
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase();
+
+                  const appDate = app.appliedAt
+                    ? new Date(app.appliedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : 'Recent';
+
                   return (
-                    <tr key={appId}>
+                    <tr key={app._id || app.id}>
                       <td>
-                        <div className="candidate-name-cell">
-                          <div className="candidate-avatar">
-                            {(app.studentName || 'S').charAt(0).toUpperCase()}
-                          </div>
-                          <span className="candidate-name">{app.studentName}</span>
+                        <div className="candidate-cell">
+                          <div className="candidate-avatar">{initials}</div>
+                          <span className="candidate-full-name">{app.studentName}</span>
                         </div>
                       </td>
                       <td>
-                        <span className="company-text">{app.companyName}</span>
+                        <div className="app-company-col">
+                          <span className="company-text-bold">{app.companyName}</span>
+                          <span className="role-text-dim">{app.role || 'Software Engineer'}</span>
+                        </div>
                       </td>
                       <td>
-                        <span className="role-text">{app.role}</span>
+                        <span className="date-text">{appDate}</span>
                       </td>
                       <td>
-                        <span className="date-text">
-                          {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Active'}
-                        </span>
-                      </td>
-                      <td>
-                        {!isStudent ? (
+                        {isAdmin ? (
                           <select
-                            className={`app-status-select select-${(app.status || 'applied').toLowerCase().replace(/\s+/g, '-')}`}
+                            className={`status-inline-select ${statusLower}`}
                             value={app.status || 'Applied'}
-                            onChange={(e) => handleStatusChange(appId, e.target.value)}
+                            onChange={(e) =>
+                              handleStatusChange(app._id || app.id, e.target.value)
+                            }
                           >
                             <option value="Applied">Applied</option>
                             <option value="Interview">Interview</option>
@@ -507,35 +462,23 @@ export default function Applications({
                             <option value="Rejected">Rejected</option>
                           </select>
                         ) : (
-                          <span className={`status-pill ${(app.status || 'applied').toLowerCase().replace(/\s+/g, '-')}`}>
+                          <span className={`status-pill ${statusLower}`}>
                             {app.status || 'Applied'}
                           </span>
                         )}
                       </td>
-                      <td>
-                        {!isStudent ? (
+                      {isAdmin && (
+                        <td className="text-right">
                           <button
                             type="button"
-                            className="btn-danger"
-                            onClick={() => handleDelete(appId)}
+                            className="delete-row-btn"
+                            onClick={() => handleDelete(app._id || app.id)}
                             title="Delete application"
                           >
-                            <Trash2 size={13} />
-                            <span>DELETE</span>
+                            <Trash2 size={15} />
                           </button>
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontFamily: 'var(--font-mono)',
-                              color: 'var(--dim-text)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            VERIFIED
-                          </span>
-                        )}
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -543,7 +486,98 @@ export default function Applications({
             </table>
           </div>
         )}
-      </section>
+      </div>
+
+      {/* Submit Application Modal */}
+      {showAddModal && (
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div className="modal-card-header">
+              <div className="modal-title-row">
+                <FileText size={18} className="text-indigo" />
+                <h3 className="modal-title">Submit Student Application</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="modal-form-body">
+              <div className="form-group">
+                <label className="form-label">Select Candidate</label>
+                <select
+                  name="studentId"
+                  className="modal-select"
+                  value={formData.studentId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Choose Candidate --</option>
+                  {students
+                    .filter((s) => s.status !== 'Placed')
+                    .map((s) => (
+                      <option key={s._id || s.id} value={s._id || s.id}>
+                        {s.name} ({s.branch || 'CSE'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Select Partner Recruiter</label>
+                <select
+                  name="companyId"
+                  className="modal-select"
+                  value={formData.companyId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Choose Recruiter --</option>
+                  {companies.map((c) => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Target Role / Position</label>
+                <input
+                  type="text"
+                  name="role"
+                  className="modal-input"
+                  placeholder="e.g. Associate Software Engineer"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="modal-card-footer">
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-submit-btn"
+                  disabled={saving}
+                >
+                  {saving ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

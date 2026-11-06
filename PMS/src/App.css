@@ -1,5 +1,5 @@
 /* ==========================================================================
-   APP CONTAINER & CORE LAYOUT — NOVA MINIMALIST LIGHT
+   APP CONTAINER & CORE LAYOUT — MODERN CLEAN SAAS
    ========================================================================== */
 
 #root {
@@ -11,29 +11,22 @@
 }
 
 main#main-content {
-  min-height: calc(100vh - 82px);
+  min-height: calc(100vh - 70px);
   position: relative;
   z-index: 2;
 }
 
-/* Clear the fixed 82px top navigation (30px top bar + 52px navbar) on all inner pages */
 main#main-content.main-inner {
-  padding-top: 86px;
+  padding: 32px 24px 64px;
 }
 
 main#main-content.main-home {
-  padding-top: 0;
-}
-
-@media (max-width: 900px) {
-  main#main-content.main-inner {
-    padding-top: 82px;
-  }
+  padding: 0;
 }
 
 /* Accessible focus ring */
 :focus-visible {
-  outline: 2px solid var(--rust-500) !important;
+  outline: 2px solid var(--primary) !important;
   outline-offset: 2px !important;
 }
 
@@ -48,10 +41,10 @@ main#main-content.main-home {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 20, 20, 0.18);
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--rust-500);
+  background: var(--primary);
 }

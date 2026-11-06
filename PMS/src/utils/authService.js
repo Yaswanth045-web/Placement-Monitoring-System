@@ -10,7 +10,8 @@ try {
   localStorage.removeItem('yaswanth_auth_user_dossier');
 } catch {}
 
-export const ADMIN_SECRET_KEY = 'YP-ADMIN-2026';
+export const ADMIN_SECRET_KEY = 'admin';
+export const VALID_ADMIN_KEYS = ['admin', 'yp-admin-2026', 'admin123'];
 
 // Standard Pre-Configured Test Accounts (for verification & evaluation)
 export const SEED_ADMIN = {
@@ -261,15 +262,33 @@ export async function loginUser(email, password) {
 // SIGNUP (Professional JWT Flow with Backend First)
 // --------------------------------------------------------------------------
 export async function signupUser(userData) {
-  const { name, email, password, role = 'student', branch, rollNo, cgpa, phone, bio, skills } = userData;
+  const {
+    name,
+    email,
+    password,
+    role = 'student',
+    branch,
+    rollNo,
+    cgpa,
+    phone,
+    bio,
+    skills,
+    adminPasscode,
+    adminSecretKey,
+  } = userData;
   const normEmail = (email || '').trim().toLowerCase();
+  const effectivePasscode = (adminPasscode || adminSecretKey || '').trim();
 
   // 1. Try Backend Registration Endpoint
   try {
     const res = await fetch(API_ENDPOINTS.auth.signup, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({
+        ...userData,
+        adminPasscode: effectivePasscode,
+        adminSecretKey: effectivePasscode,
+      }),
     });
 
     const result = await res.json();
@@ -289,8 +308,8 @@ export async function signupUser(userData) {
 
   // 2. Local Registration
   if (role === 'admin') {
-    const key = (userData.adminSecretKey || userData.adminPasscode || '').trim();
-    if (key !== ADMIN_SECRET_KEY) {
+    const keyLower = effectivePasscode.toLowerCase();
+    if (!VALID_ADMIN_KEYS.includes(keyLower)) {
       return {
         success: false,
         message: 'Security Violation: Administrator account creation requires a valid Placement Officer Authorization Key. Students cannot register as administrators.',

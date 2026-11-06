@@ -7,6 +7,7 @@ const studentRoutes = require('./routes/studentRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const authRoutes = require('./routes/authRoutes');
+const driveRoutes = require('./routes/driveRoutes');
 const User = require('./models/User');
 const Student = require('./models/student');
 
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/drives', driveRoutes);
 
 // Home route
 app.get('/', (req, res) => {

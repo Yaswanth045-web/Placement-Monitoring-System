@@ -1,5 +1,7 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Student = require('../models/student');
+const User = require('../models/User');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -64,17 +66,36 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 // PATCH: Update student status or details
 router.patch('/:id', async (req, res) => {
   try {
-    const student = await Student.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const { id } = req.params;
+    let student;
+
+    if (mongoose.isValidObjectId(id)) {
+      student = await Student.findByIdAndUpdate(
+        id,
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+    } else {
+      student = await Student.findOneAndUpdate(
+        { $or: [{ name: id }, { email: id }] },
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+    }
 
     if (!student) {
       return res.status(404).json({
         success: false,
         message: 'Student not found',
       });
+    }
+
+    // Sync corresponding User account status if exists
+    if (req.body.status && student.email) {
+      await User.updateMany(
+        { email: student.email.toLowerCase() },
+        { status: req.body.status }
+      );
     }
 
     res.status(200).json({

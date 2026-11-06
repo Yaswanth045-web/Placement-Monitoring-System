@@ -1,49 +1,59 @@
 /* ==========================================================================
-   APPLICATIONS MANAGEMENT STYLES — NOVA LIGHT PAPER THEME
+   PLACEMENTPULSE — MODERN APPLICATION TRACKER STYLING
    ========================================================================== */
 
-.field-hint-warn {
-  font-size: 11px;
-  color: var(--rust-500);
-  font-family: var(--font-mono);
-  margin-top: 4px;
+.app-company-col {
+  display: flex;
+  flex-direction: column;
 }
 
-.app-status-select {
-  padding: 5px 10px;
-  border-radius: 3px;
-  font-family: var(--font-mono);
+.company-text-bold {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.role-text-dim {
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: #64748b;
+}
+
+.date-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Status Inline Select */
+.status-inline-select {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
   outline: none;
   cursor: pointer;
-  background: var(--bg);
-  border: 1px solid var(--paper-border);
   transition: all 0.2s ease;
 }
 
-.select-applied {
+.status-inline-select.applied {
+  background: #eff6ff;
   color: #1d4ed8;
-  border-color: rgba(59, 130, 246, 0.35);
-  background: rgba(59, 130, 246, 0.1);
+  border-color: #bfdbfe;
 }
 
-.select-interview {
+.status-inline-select.interview {
+  background: #fffbeb;
   color: #b45309;
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.1);
+  border-color: #fde68a;
 }
 
-.select-selected {
-  color: #15803d;
-  border-color: rgba(34, 197, 94, 0.35);
-  background: rgba(34, 197, 94, 0.1);
+.status-inline-select.selected {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
 }
 
-.select-rejected {
+.status-inline-select.rejected {
+  background: #fef2f2;
   color: #b91c1c;
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.1);
+  border-color: #fecaca;
 }

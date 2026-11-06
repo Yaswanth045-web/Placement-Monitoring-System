@@ -26,24 +26,22 @@ export default function ContactModal({ isOpen, onClose }) {
   return (
     <div className="contact-modal-backdrop" onClick={onClose} role="presentation">
       <div
-        className="contact-modal-window industrial-rivet-card"
+        className="contact-modal-window"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="contact-modal-title"
       >
-        <div className="hazard-accent-strip" />
-
         <div className="modal-header-bar">
           <div>
-            <span className="modal-badge-code">CAMPUS PLACEMENT CELL // DIRECT DESK</span>
+            <span className="modal-badge-pill">Campus Placement Cell</span>
             <h3 id="contact-modal-title" className="modal-headline">
-              CONNECT WITH PLACEMENTPULSE
+              Connect with Placement Officers
             </h3>
           </div>
           <button
             type="button"
-            className="modal-close-btn"
+            className="modal-close-icon-btn"
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -54,40 +52,40 @@ export default function ContactModal({ isOpen, onClose }) {
         <div className="modal-body-grid">
           {/* Left Column: Office Contacts */}
           <div className="modal-info-panel">
-            <h4 className="panel-title">CENTRAL PLACEMENT OFFICE</h4>
+            <h4 className="panel-title">Central Placement Office</h4>
             <p className="panel-desc">
               Direct institutional coordination for corporate drives, campus hiring, and student placement assistance.
             </p>
 
             <div className="info-items-list">
               <div className="info-row">
-                <MapPin size={18} className="info-icon" />
+                <MapPin size={18} className="info-icon text-indigo" />
                 <div>
                   <strong>Campus Location</strong>
-                  <p>Tech Hub Level 4, Center for Career Planning & Placements, Main Campus</p>
+                  <p>Tech Hub Level 4, Center for Career Planning & Placements</p>
                 </div>
               </div>
 
               <div className="info-row">
-                <Mail size={18} className="info-icon" />
+                <Mail size={18} className="info-icon text-indigo" />
                 <div>
-                  <strong>Recruiter Coordination Email</strong>
+                  <strong>Coordination Email</strong>
                   <p>placements@placementpulse.edu</p>
                 </div>
               </div>
 
               <div className="info-row">
-                <Phone size={18} className="info-icon" />
+                <Phone size={18} className="info-icon text-indigo" />
                 <div>
-                  <strong>Placement Officer Hotline</strong>
+                  <strong>Officer Hotline</strong>
                   <p>+91 (080) 2894-2200 / +91 98765 43210</p>
                 </div>
               </div>
 
               <div className="info-row">
-                <Clock size={18} className="info-icon" />
+                <Clock size={18} className="info-icon text-indigo" />
                 <div>
-                  <strong>Administrative Hours</strong>
+                  <strong>Office Hours</strong>
                   <p>Monday – Friday: 09:00 AM – 05:30 PM IST</p>
                 </div>
               </div>
@@ -96,67 +94,71 @@ export default function ContactModal({ isOpen, onClose }) {
 
           {/* Right Column: Recruiter Enquiry Form */}
           <div className="modal-form-panel">
-            <h4 className="panel-title">RECRUITER INQUIRY DESK</h4>
+            <h4 className="panel-title">Recruiter Inquiry Desk</h4>
             <p className="panel-desc">
-              Schedule a campus drive or request student batch qualification details.
+              Schedule campus interview slots, request candidate batches, or coordinate tests.
             </p>
 
             {submitted ? (
-              <div className="submission-success-banner" role="status">
-                <CheckCircle2 size={36} className="success-icon" />
-                <h4>INQUIRY LOGGED</h4>
-                <p>Your dispatch has been registered. The placement officer will connect shortly.</p>
+              <div className="contact-success-state">
+                <CheckCircle2 size={36} className="text-emerald" />
+                <h5>Inquiry Received!</h5>
+                <p>A placement coordination officer will respond to your corporate email within 2 business hours.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="contact-direct-form">
-                <div className="form-field-group">
-                  <label htmlFor="contact-name">Your Name *</label>
+              <form onSubmit={handleSubmit} className="contact-form">
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
                   <input
-                    id="contact-name"
+                    type="text"
+                    required
+                    className="modal-input"
+                    placeholder="e.g. Talent Acquisition Lead"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Priya Nair (HR Lead)"
-                    required
                   />
                 </div>
 
-                <div className="form-field-group">
-                  <label htmlFor="contact-comp">Company / Organization *</label>
-                  <input
-                    id="contact-comp"
-                    value={form.company}
-                    onChange={(e) => setForm({ ...form, company: e.target.value })}
-                    placeholder="e.g. Amazon Web Services"
-                    required
-                  />
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label className="form-label">Organization</label>
+                    <input
+                      type="text"
+                      required
+                      className="modal-input"
+                      placeholder="e.g. Google India"
+                      value={form.company}
+                      onChange={(e) => setForm({ ...form, company: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Work Email</label>
+                    <input
+                      type="email"
+                      required
+                      className="modal-input"
+                      placeholder="hr@company.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    />
+                  </div>
                 </div>
 
-                <div className="form-field-group">
-                  <label htmlFor="contact-email">Corporate Email *</label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="e.g. hiring@company.com"
-                    required
-                  />
-                </div>
-
-                <div className="form-field-group">
-                  <label htmlFor="contact-msg">Hiring Requirements / Message</label>
+                <div className="form-group">
+                  <label className="form-label">Inquiry Details</label>
                   <textarea
-                    id="contact-msg"
-                    rows={3}
+                    required
+                    rows="3"
+                    className="modal-textarea"
+                    placeholder="Briefly state target batch, roles, or drive date requirements..."
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    placeholder="Target branches, roles, CTC range, or preferred drive dates..."
                   />
                 </div>
 
-                <button type="submit" className="btn-rust">
-                  <Send size={16} />
-                  <span>DISPATCH INQUIRY</span>
+                <button type="submit" className="contact-submit-btn">
+                  <Send size={15} />
+                  <span>Send Recruitment Inquiry</span>
                 </button>
               </form>
             )}

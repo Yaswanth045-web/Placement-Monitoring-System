@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Shield, Mail, Phone, Building, Edit3, Check, X, Info, GraduationCap, Award, BookOpen, Code, FileText } from 'lucide-react';
+import {
+  UserCheck,
+  Shield,
+  Mail,
+  Phone,
+  Building,
+  Edit3,
+  Check,
+  X,
+  GraduationCap,
+  Award,
+  BookOpen,
+  Code,
+  FileText,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import { updateUserProfile, getStoredUser } from '../utils/authService';
 import '../Styles/Profile.css';
 
@@ -8,9 +24,9 @@ export default function Profile({ currentUser, onUpdateUser }) {
   const [saveToast, setSaveToast] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Active user (student or admin)
   const user = currentUser || getStoredUser();
   const isStudent = user?.role === 'student';
+  const isAdmin = user?.role === 'admin';
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -22,12 +38,8 @@ export default function Profile({ currentUser, onUpdateUser }) {
     bio: user?.bio || '',
     skills: user?.skills || '',
     department: user?.department || 'Career Development Cell',
-    roleTitle: user?.role === 'admin' ? (user?.roleTitle || 'Head of Campus Placement Operations') : 'Student Candidate',
-    officerId: user?.officerId || 'YP-ADM-2026-X01',
-    clearance: user?.clearance || 'LEVEL-4 // FULL ADMIN PRIVILEGES',
   });
 
-  // Sync form when user changes
   useEffect(() => {
     if (user) {
       setFormData({
@@ -40,9 +52,6 @@ export default function Profile({ currentUser, onUpdateUser }) {
         bio: user.bio || '',
         skills: user.skills || '',
         department: user.department || 'Career Development Cell',
-        roleTitle: user.role === 'admin' ? (user.roleTitle || 'Head of Campus Placement Operations') : 'Student Candidate',
-        officerId: user.officerId || 'YP-ADM-2026-X01',
-        clearance: user.clearance || 'LEVEL-4 // FULL ADMIN PRIVILEGES',
       });
     }
   }, [user]);
@@ -53,14 +62,6 @@ export default function Profile({ currentUser, onUpdateUser }) {
       ...prev,
       [name]: value,
     }));
-  }
-
-  function handleEdit() {
-    setIsEditing(true);
-  }
-
-  function handleCancel() {
-    setIsEditing(false);
   }
 
   async function handleSave(event) {
@@ -84,340 +85,282 @@ export default function Profile({ currentUser, onUpdateUser }) {
     setTimeout(() => setSaveToast(false), 3500);
   }
 
+
+  const skillsList = (formData.skills || 'React.js, Node.js, Python, Data Structures, System Design')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const initials = (user?.name || (isStudent ? 'S' : 'A'))
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
-    <div className="management-page-container">
+    <div className="modern-management-page">
       {/* Header */}
-      <div className="management-header-row">
+      <div className="page-header-row">
         <div>
-          <div className="mgmt-badge mono">
-            {isStudent ? 'STUDENT DOSSIER // MODULE 05' : 'SECURITY CREDENTIALS // MODULE 05'}
-          </div>
-          <h2 className="mgmt-title">
-            {isStudent ? 'STUDENT PROFILE & ACADEMIC RESUME' : 'ADMINISTRATOR PROFILE'}
-          </h2>
-          <p className="mgmt-subtitle">
+          <h1 className="page-main-title">
+            {isStudent ? 'Student Dossier' : 'Administrator Credentials'}
+          </h1>
+          <p className="page-sub-title">
             {isStudent
-              ? 'Manage your personal candidate information, academic qualifications, and technical skill credentials.'
-              : 'Placement officer credentials, system clearance, and institutional coordination identity.'}
+              ? 'Manage your academic qualifications, resume highlights, and placement readiness.'
+              : 'Institutional coordination, operational clearance, and system administrative identity.'}
           </p>
         </div>
 
-        {!isEditing && (
-          <button
-            type="button"
-            className="btn-rust btn-sm"
-            onClick={handleEdit}
-          >
-            <Edit3 size={15} />
-            <span>{isStudent ? 'EDIT MY PROFILE' : 'EDIT CREDENTIALS'}</span>
-          </button>
-        )}
+        <div className="page-header-actions">
+          {!isEditing ? (
+            <button
+              type="button"
+              className="primary-action-btn"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit3 size={15} />
+              <span>Edit Profile</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="secondary-action-btn"
+              onClick={() => setIsEditing(false)}
+            >
+              <X size={15} />
+              <span>Cancel</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {saveToast && (
-        <div className="profile-toast-success" role="alert">
+        <div className="profile-toast-alert">
           <Check size={16} />
-          <span>Profile updated successfully! Changes saved across system sessions.</span>
+          <span>Profile changes saved successfully!</span>
         </div>
       )}
 
-      {/* Main Profile Layout */}
-      <div className="profile-layout-grid">
-        <div className="profile-credential-badge industrial-rivet-card">
-          <div className="badge-hazard-strip" />
-
-          {/* Top Section */}
-          <div className="badge-top-section">
-            <div className="badge-avatar-frame">
-              <span className="badge-avatar-letter">
-                {(user?.name || (isStudent ? 'S' : 'A')).charAt(0).toUpperCase()}
-              </span>
+      {/* Main Profile Grid */}
+      <div className="profile-grid-container">
+        {/* Left Column: ID Card */}
+        <div className="profile-user-summary-card">
+          <div className="profile-avatar-wrap">
+            <div className={`user-big-avatar ${isAdmin ? 'admin-bg' : 'student-bg'}`}>
+              {initials}
             </div>
-
-            <div className="badge-meta-lockup">
-              <span className="officer-id-tag mono">
-                {isStudent ? (user?.rollNo || 'YP-2026-CS101') : (user?.officerId || 'YP-ADM-2026-X01')}
-              </span>
-              <h3 className="officer-name">{user?.name || (isStudent ? 'Student Candidate' : 'Placement Admin')}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                <span className="officer-role-title">
-                  {isStudent ? `Student Candidate // ${user?.branch || 'CSE'}` : (user?.department || 'Head of Placement Operations')}
-                </span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '2px 8px',
-                    borderRadius: '2px',
-                    background: isStudent ? 'rgba(255, 138, 61, 0.15)' : 'rgba(20, 20, 20, 0.12)',
-                    color: isStudent ? '#ff8a3d' : '#141414',
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                  }}
-                >
-                  {isStudent ? 'STUDENT ROLE' : 'ADMIN ROLE'}
-                </span>
-              </div>
+            <div className="profile-badge-pill">
+              {isAdmin ? <Shield size={13} /> : <GraduationCap size={13} />}
+              <span>{isAdmin ? 'Placement Officer' : 'Active Candidate'}</span>
             </div>
           </div>
 
-          {/* Details Grid */}
-          <div className="badge-details-grid">
-            <div className="detail-item">
-              <span className="detail-label">OFFICIAL EMAIL</span>
-              <div className="detail-val-row">
-                <Mail size={14} className="detail-icon" />
-                <span className="detail-value">{user?.email || 'N/A'}</span>
-              </div>
-            </div>
+          <h2 className="user-profile-heading">{user?.name || 'User Name'}</h2>
+          <p className="user-profile-sub">{user?.email || 'email@example.com'}</p>
 
-            <div className="detail-item">
-              <span className="detail-label">{isStudent ? 'ACADEMIC BRANCH' : 'CAMPUS DEPARTMENT'}</span>
-              <div className="detail-val-row">
-                {isStudent ? <GraduationCap size={14} className="detail-icon" /> : <Building size={14} className="detail-icon" />}
-                <span className="detail-value">{isStudent ? (user?.branch || 'CSE') : (user?.department || 'Placement Cell')}</span>
-              </div>
-            </div>
-
-            <div className="detail-item">
-              <span className="detail-label">HOTLINE CONTACT</span>
-              <div className="detail-val-row">
-                <Phone size={14} className="detail-icon" />
-                <span className="detail-value">{user?.phone || '+91 98765 43210'}</span>
-              </div>
-            </div>
-
+          <div className="profile-metrics-stack">
             {isStudent ? (
-              <div className="detail-item">
-                <span className="detail-label">ACADEMIC CGPA</span>
-                <div className="detail-val-row">
-                  <Award size={14} className="detail-icon" style={{ color: '#ff8a3d' }} />
-                  <span className="detail-value" style={{ fontWeight: 600, color: '#ff8a3d' }}>
-                    {user?.cgpa || '8.5'} / 10.0
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="detail-item">
-                <span className="detail-label">SYSTEM CLEARANCE</span>
-                <div className="detail-val-row">
-                  <Shield size={14} className="detail-icon clearance-icon" />
-                  <span className="detail-value clearance-val">{user?.clearance || 'LEVEL-4 // FULL ADMIN'}</span>
-                </div>
-              </div>
-            )}
-
-            {isStudent && (
               <>
-                <div className="detail-item" style={{ gridColumn: 'span 2' }}>
-                  <span className="detail-label">TECHNICAL SKILLS & COMPETENCIES</span>
-                  <div className="detail-val-row" style={{ marginTop: '4px' }}>
-                    <Code size={14} className="detail-icon" />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {(user?.skills || 'React, Node.js, Python, DSA')
-                        .split(',')
-                        .map((s, idx) => (
-                          <span
-                            key={idx}
-                            style={{
-                              fontSize: '11px',
-                              fontFamily: 'var(--font-mono)',
-                              background: 'var(--bg)',
-                              border: '1px solid var(--paper-border)',
-                              padding: '2px 8px',
-                              borderRadius: '3px',
-                            }}
-                          >
-                            {s.trim()}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
+                <div className="metric-row">
+                  <span className="metric-title">Branch</span>
+                  <span className="metric-bold">{user?.branch || 'CSE'}</span>
                 </div>
-
-                <div className="detail-item" style={{ gridColumn: 'span 2' }}>
-                  <span className="detail-label">CANDIDATE BIO & CAREER GOALS</span>
-                  <p style={{ margin: '4px 0 0', fontSize: '13.5px', color: 'var(--text)', lineHeight: 1.5 }}>
-                    {user?.bio || 'Enthusiastic student dedicated to building high performance applications.'}
-                  </p>
+                <div className="metric-row">
+                  <span className="metric-title">Cumulative CGPA</span>
+                  <span className="metric-bold text-indigo">{user?.cgpa || '8.5'} / 10.0</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-title">Roll ID</span>
+                  <span className="metric-bold">{user?.rollNo || 'YP-2026-CS101'}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="metric-row">
+                  <span className="metric-title">Department</span>
+                  <span className="metric-bold">{user?.department || 'Career Affairs'}</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-title">Clearance</span>
+                  <span className="metric-bold text-emerald">Full Operational Admin</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-title">Officer ID</span>
+                  <span className="metric-bold">{user?.officerId || 'YP-ADM-2026-X01'}</span>
                 </div>
               </>
             )}
           </div>
-
-          {/* Student Status & Notice Box */}
-          <div className="persistence-notice-box">
-            <Info size={16} className="notice-icon" />
-            <p className="notice-text">
-              <strong>Role Access Status:</strong> {isStudent
-                ? 'Logged in with Student privileges. You can edit your personal candidate profile and view all company placement drives. Modifying company directories or student databases is restricted to Placement Administrators.'
-                : 'Logged in with Full Administrative privileges. You can add/edit companies, candidates, and manage the complete placement drive pipeline.'}
-            </p>
-          </div>
         </div>
 
-        {/* Edit Form (if editing) */}
-        {isEditing && (
-          <div className="profile-edit-panel industrial-rivet-card">
-            <div className="form-card-header">
-              <h3 className="form-card-title">
-                {isStudent ? 'EDIT STUDENT PROFILE' : 'UPDATE OFFICER IDENTITY'}
-              </h3>
-              <span className="form-card-code mono">
-                {isStudent ? 'STUDENT // EDIT MODE' : 'ADMIN // CREDENTIALS EDIT'}
-              </span>
-            </div>
-
+        {/* Right Column: Detailed Info / Edit Form */}
+        <div className="profile-details-card">
+          {isEditing ? (
             <form onSubmit={handleSave} className="profile-edit-form">
-              <div className="form-field-group">
-                <label htmlFor="prof-name">{isStudent ? 'Full Name *' : 'Officer Name *'}</label>
-                <input
-                  id="prof-name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
+              <h3 className="section-title">Edit Personal Details</h3>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Full Legal Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    className="modal-input"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Contact Phone</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    className="modal-input"
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
 
-              <div className="form-field-group">
-                <label htmlFor="prof-email">Email Address *</label>
-                <input
-                  id="prof-email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-field-group">
-                <label htmlFor="prof-phone">Phone Contact</label>
-                <input
-                  id="prof-phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {isStudent ? (
-                <>
-                  <div className="form-field-group">
-                    <label htmlFor="prof-branch">Academic Branch</label>
+              {isStudent && (
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Branch</label>
                     <select
-                      id="prof-branch"
                       name="branch"
+                      className="modal-select"
                       value={formData.branch}
                       onChange={handleChange}
                     >
-                      <option value="CSE">Computer Science (CSE)</option>
-                      <option value="ECE">Electronics & Communication (ECE)</option>
-                      <option value="IT">Information Technology (IT)</option>
-                      <option value="ME">Mechanical Engineering (ME)</option>
-                      <option value="CE">Civil Engineering (CE)</option>
-                      <option value="AIML">AI & Machine Learning</option>
+                      <option value="CSE">CSE</option>
+                      <option value="ECE">ECE</option>
+                      <option value="IT">IT</option>
+                      <option value="MECH">MECH</option>
+                      <option value="CIVIL">CIVIL</option>
+                      <option value="EEE">EEE</option>
                     </select>
                   </div>
 
-                  <div className="form-field-group">
-                    <label htmlFor="prof-roll">Roll Number / USN</label>
+                  <div className="form-group">
+                    <label className="form-label">Roll Number</label>
                     <input
-                      id="prof-roll"
+                      type="text"
                       name="rollNo"
+                      className="modal-input"
                       value={formData.rollNo}
                       onChange={handleChange}
                     />
                   </div>
 
-                  <div className="form-field-group">
-                    <label htmlFor="prof-cgpa">CGPA (0 - 10)</label>
+                  <div className="form-group">
+                    <label className="form-label">CGPA</label>
                     <input
-                      id="prof-cgpa"
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      max="10"
                       name="cgpa"
+                      className="modal-input"
                       value={formData.cgpa}
                       onChange={handleChange}
                     />
                   </div>
-
-                  <div className="form-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label htmlFor="prof-skills">Technical Skills (comma-separated)</label>
-                    <input
-                      id="prof-skills"
-                      name="skills"
-                      value={formData.skills}
-                      onChange={handleChange}
-                      placeholder="e.g. React, Node.js, Python, DSA, SQL"
-                    />
-                  </div>
-
-                  <div className="form-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label htmlFor="prof-bio">Bio / Summary</label>
-                    <textarea
-                      id="prof-bio"
-                      name="bio"
-                      rows={3}
-                      value={formData.bio}
-                      onChange={handleChange}
-                      style={{
-                        padding: '10px 14px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--paper-border)',
-                        borderRadius: '3px',
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '13.5px',
-                        color: 'var(--text)',
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="form-field-group">
-                    <label htmlFor="prof-dept">Department</label>
-                    <input
-                      id="prof-dept"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="form-field-group">
-                    <label htmlFor="prof-role">Designation / Role Title</label>
-                    <input
-                      id="prof-role"
-                      name="roleTitle"
-                      value={formData.roleTitle}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </>
+                </div>
               )}
 
-              <div className="form-buttons-row" style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+              <div className="form-group">
+                <label className="form-label">Professional Summary / Bio</label>
+                <textarea
+                  name="bio"
+                  rows="3"
+                  className="modal-textarea"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  placeholder="Brief overview of your academic focus and career objectives..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Key Technical Skills (comma separated)</label>
+                <input
+                  type="text"
+                  name="skills"
+                  className="modal-input"
+                  value={formData.skills}
+                  onChange={handleChange}
+                  placeholder="e.g. React.js, Python, System Design, SQL"
+                />
+              </div>
+
+              <div className="form-save-actions">
                 <button
                   type="button"
-                  className="btn-steel btn-sm"
-                  onClick={handleCancel}
-                  disabled={saving}
+                  className="secondary-action-btn"
+                  onClick={() => setIsEditing(false)}
                 >
-                  <X size={14} />
-                  <span>CANCEL</span>
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-rust btn-sm"
+                  className="primary-action-btn"
                   disabled={saving}
                 >
-                  <Check size={14} />
-                  <span>{saving ? 'SAVING...' : 'SAVE CHANGES'}</span>
+                  {saving ? 'Saving Changes...' : 'Save Profile Changes'}
                 </button>
               </div>
             </form>
-          </div>
-        )}
+          ) : (
+            <div className="profile-view-content">
+              {/* Bio Section */}
+              <div className="info-block">
+                <h3 className="section-title">Career Objective & Summary</h3>
+                <p className="bio-paragraph">
+                  {user?.bio ||
+                    (isStudent
+                      ? 'Final-year Computer Science candidate focused on cloud-native web engineering, distributed systems, and real-time frontend interfaces.'
+                      : 'Placement Cell Officer responsible for corporate relations, campus drives, candidate eligibility auditing, and institutional placement benchmarks.')}
+                </p>
+              </div>
+
+              {/* Skills Tags */}
+              <div className="info-block">
+                <h3 className="section-title">Verified Core Competencies</h3>
+                <div className="skills-badge-wrap">
+                  {skillsList.map((skill) => (
+                    <span key={skill} className="skill-pill">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact & Verification Info */}
+              <div className="info-block">
+                <h3 className="section-title">Institutional Coordinates</h3>
+                <div className="coords-grid">
+                  <div className="coord-card">
+                    <Mail size={16} className="text-indigo" />
+                    <div>
+                      <span className="coord-label">Primary Email</span>
+                      <span className="coord-val">{user?.email || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="coord-card">
+                    <Phone size={16} className="text-indigo" />
+                    <div>
+                      <span className="coord-label">Contact Phone</span>
+                      <span className="coord-val">{user?.phone || '+91 98765 43210'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

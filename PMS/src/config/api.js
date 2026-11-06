@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   students: `${API_BASE}/students`,
   companies: `${API_BASE}/companies`,
   applications: `${API_BASE}/applications`,
+  drives: `${API_BASE}/drives`,
 
   auth: {
     signup: `${API_BASE}/auth/signup`,
